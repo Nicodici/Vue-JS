@@ -1,0 +1,30 @@
+Iniciar Proyecto: npm create vite@latest y elegir el lenguaje del proyecto
+
+En la carpeta Public se guardan todos los archivos de imagenes, videos, iconos , etc publicos.
+
+.gitignore: En este archivo se describen los archivos que no queremos que se suban a github, ya que ocupan espacio o son innecesarios.
+
+package.json: Archivo que nos da un resumen de nuestro proyecto, donde se describe que dependencias contiene, scripts y datos del proyecto (nombre, version, etc..)
+
+En VUE, tenemos componentes. Cada componente se compone de un archivo script, un template (que sería el html) y su style.
+
+
+Vue JS
+Es reactivo, lo que significa que cuando se actualiza un dato, la vista se actualiza automaticamente.
+Directivas: Son atributos especiales que se agregan a las etiquetas HTML para darles un comportamiento especial.
+Ejemplo: v-if, v-for, v-bind, v-model, v-on
+
+Componentes: Son bloques reutilizables de código que encapsulan su propia estructura, estilo y comportamiento.
+Props: Son propiedades que se pasan a los componentes para que puedan recibir datos desde su componente padre.
+
+Arquitectura de un proyecto VUE
+Utiliza el patrón MVVM (Model-View-ViewModel)
+Model: Representa los datos y la lógica de negocio de la aplicación.
+View: Es la interfaz de usuario que muestra los datos.
+ViewModel: Actúa como un intermediario entre el Model y la View, gestionando la lógica de presentación y la vinculación de datos.
+
+Funcionamiento de VUE
+
+Index.html contiene un div con un id="app", que es donde se monta la aplicación Vue.
+Main.js es el punto de entrada de la aplicación, donde se crea la instancia de Vue y se monta en el div con id "app".
+App.vue es el componente raíz de la aplicación, que contiene la estructura principal y otros componentes hijos.
