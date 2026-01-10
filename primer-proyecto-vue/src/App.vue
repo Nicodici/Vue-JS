@@ -2,12 +2,12 @@
 import Vbind from "./components/Vbind.vue";
 import HeaderComponent from "./components/HeaderComponent.vue";
 import Variable from "./components/Variable.vue";
+import ExampleSelective from "./components/ExampleSelective.vue";
+import ExampleVfor from "./components/ExampleVfor.vue";
 </script>
+
 <template>
-  <HeaderComponent></HeaderComponent>
-  <!-- entrelazamos una variable con v-bind -->
-  <Variable></Variable>
-  <Vbind></Vbind>
+    <ExampleVfor />
 </template>
 
 <style></style>
