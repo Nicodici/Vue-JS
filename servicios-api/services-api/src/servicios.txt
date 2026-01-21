@@ -1,0 +1,4 @@
+En cuanto a consumo de APIS, no las vamos a realizar en un componente Vue, sino que lo haremos en un servicio aparte, para tener el codigo mas ordenado y limpio.
+Dado que si lo hacemos en un componente, en caso de que haya una modificación o eliminación de algun endpoint, tendriamos que ir a cada componente y modificarlo, en cambio si lo hacemos en un servicio, solo tendriamos que modificarlo en un solo lugar.
+
+Entonces, creamos una carpeta services, y dentro de ella un archivo services.js .

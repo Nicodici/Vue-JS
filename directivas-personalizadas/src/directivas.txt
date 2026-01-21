@@ -1,0 +1,3 @@
+Directivas personalizadas:
+En el caso de que escribamos la directiva personalizada dentro del componente, esa solo será accesible para ese componente en particular. Sin embargo, si queremos que la directiva esté disponible para múltiples componentes dentro de nuestra aplicación, debemos definirla en un módulo compartido.
+Normalmente , creamos nuestras directivas en un archivo separado para mantener nuestro código organizado y facilitar su reutilización. Luego, importamos ese archivo en el módulo compartido donde definimos la directiva.

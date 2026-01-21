@@ -1,0 +1,215 @@
+====================================
+COMUNICACIÓN ENTRE COMPONENTES EN VUE.JS
+====================================
+
+1. COMUNICACIÓN VERTICAL (PADRE-HIJO)
+--------------------------------------
+
+1.1 Comunicación Descendente (Padre → Hijo)
+- Se realiza a través de propiedades (props) que se pasan desde un componente padre a un componente hijo.
+- El componente hijo recibe las props y puede utilizarlas para renderizar contenido o para su lógica interna.
+- Las props son de solo lectura en el componente hijo, manteniendo un flujo de datos unidireccional.
+- Se pueden validar las props con tipos, valores por defecto y validadores personalizados.
+
+Ejemplo:
+```vue
+<!-- Componente Padre -->
+<template>
+  <ChildComponent :mensaje="saludo" :usuario="datosUsuario" />
+</template>
+
+<!-- Componente Hijo -->
+<script setup>
+defineProps({
+  mensaje: String,
+  usuario: {
+    type: Object,
+    required: true,
+    default: () => ({ nombre: 'Invitado' })
+  }
+})
+</script>
+```
+
+1.2 Comunicación Ascendente (Hijo → Padre)
+- Se realiza mediante eventos personalizados utilizando el sistema de emit.
+- El componente hijo emite eventos con datos que el componente padre puede escuchar y manejar.
+- Los eventos se declaran con defineEmits() en Composition API o en la propiedad emits en Options API.
+- Si el componente hijo necesita enviar información de vuelta al componente padre, puede hacerlo mediante funciones callback
+  que se pasan como props desde el padre al hijo (aunque el método preferido es usar emits).
+
+Ejemplo:
+```vue
+<!-- Componente Hijo -->
+<script setup>
+const emit = defineEmits(['actualizar', 'eliminar'])
+
+function handleClick() {
+  emit('actualizar', { id: 1, nombre: 'Nuevo valor' })
+}
+</script>
+
+<!-- Componente Padre -->
+<template>
+  <ChildComponent @actualizar="manejarActualizacion" />
+</template>
+```
+
+2. COMUNICACIÓN HORIZONTAL (ENTRE HERMANOS)
+-------------------------------------------
+Para comunicar componentes hermanos, existen varias estrategias:
+
+2.1 A través del Componente Padre (Patrón Lifting State Up)
+- El estado se eleva al componente padre común.
+- Un hermano emite un evento al padre.
+- El padre actualiza el estado y lo pasa como prop al otro hermano.
+
+2.2 Event Bus (No recomendado en Vue 3)
+- En Vue 2 se usaba una instancia de Vue como bus de eventos.
+- Vue 3 eliminó esta funcionalidad, recomendando alternativas como Pinia o mitt.
+
+3. COMUNICACIÓN A TRAVÉS DE MÚLTIPLES NIVELES
+----------------------------------------------
+
+3.1 Provide / Inject
+- Permite que un componente ancestro provea datos a cualquier descendiente sin importar la profundidad.
+- Útil para evitar el "prop drilling" (pasar props a través de múltiples niveles).
+- El componente padre usa provide() y los descendientes usan inject().
+
+Ejemplo:
+```vue
+<!-- Componente Ancestro -->
+<script setup>
+import { provide, ref } from 'vue'
+
+const tema = ref('oscuro')
+provide('tema', tema)
+</script>
+
+<!-- Componente Descendiente (cualquier nivel) -->
+<script setup>
+import { inject } from 'vue'
+
+const tema = inject('tema')
+</script>
+```
+
+3.2 Props Drilling
+- Pasar props a través de múltiples niveles de componentes.
+- No es ideal cuando hay muchos niveles, mejor usar provide/inject o gestión de estado.
+
+4. GESTIÓN DE ESTADO GLOBAL
+----------------------------
+
+4.1 Pinia (Recomendado para Vue 3)
+- Store oficial de Vue para gestión de estado centralizado.
+- Proporciona un estado reactivo accesible desde cualquier componente.
+- Incluye devtools, hot module replacement, y soporte TypeScript completo.
+- Sintaxis más simple y mejor rendimiento que Vuex.
+
+Ejemplo:
+```javascript
+// stores/counter.js
+import { defineStore } from 'pinia'
+
+export const useCounterStore = defineStore('counter', {
+  state: () => ({ count: 0 }),
+  actions: {
+    increment() {
+      this.count++
+    }
+  }
+})
+
+// En cualquier componente
+import { useCounterStore } from '@/stores/counter'
+const store = useCounterStore()
+```
+
+4.2 Vuex (Para Vue 2, legacy en Vue 3)
+- Biblioteca de gestión de estado anterior a Pinia.
+- Más verbosa y compleja que Pinia.
+- Todavía funcional en Vue 3 pero Pinia es la opción recomendada.
+
+5. OTRAS FORMAS DE COMUNICACIÓN
+--------------------------------
+
+5.1 Refs y Template Refs
+- Permite al padre acceder directamente a la instancia del componente hijo.
+- Útil para llamar métodos del hijo o acceder a su estado interno.
+- Debe usarse con precaución, rompe la encapsulación.
+
+Ejemplo:
+```vue
+<template>
+  <ChildComponent ref="childRef" />
+  <button @click="childRef.metodoDelHijo()">Llamar método hijo</button>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+const childRef = ref(null)
+</script>
+```
+
+5.2 Slots y Scoped Slots
+- Permiten que el padre pase contenido al hijo.
+- Los scoped slots permiten que el hijo pase datos de vuelta al contenido del slot.
+- Útil para componentes reutilizables y patrones de composición.
+
+Ejemplo:
+```vue
+<!-- Componente Hijo -->
+<template>
+  <slot :usuario="usuarioActual" :loading="isLoading"></slot>
+</template>
+
+<!-- Componente Padre -->
+<template>
+  <ChildComponent v-slot="{ usuario, loading }">
+    <p v-if="!loading">{{ usuario.nombre }}</p>
+  </ChildComponent>
+</template>
+```
+
+5.3 Composables (Composition API)
+- Funciones reutilizables que encapsulan lógica con estado reactivo.
+- Permiten compartir lógica entre componentes sin jerarquía.
+- Patrón similar a React Hooks.
+
+Ejemplo:
+```javascript
+// composables/useCounter.js
+import { ref } from 'vue'
+
+export function useCounter() {
+  const count = ref(0)
+  const increment = () => count.value++
+  return { count, increment }
+}
+
+// En cualquier componente
+import { useCounter } from '@/composables/useCounter'
+const { count, increment } = useCounter()
+```
+
+6. BUENAS PRÁCTICAS
+-------------------
+- Mantener un flujo de datos unidireccional (top-down).
+- No modificar props directamente en el componente hijo.
+- Nombrar eventos con kebab-case (ej: 'update-value' en lugar de 'updateValue').
+- Validar props para detectar errores tempranamente.
+- Usar provide/inject para dependencias profundas, no para estado global.
+- Preferir Pinia para estado global compartido entre múltiples componentes.
+- Evitar el uso excesivo de refs para acceder a componentes hijos.
+- Documentar los eventos que emite cada componente.
+- Usar TypeScript para mejor autocompletado y detección de errores.
+
+7. PATRONES ANTI-PATRONES A EVITAR
+-----------------------------------
+- ❌ Modificar props directamente en el hijo
+- ❌ Usar event bus en Vue 3 (usar Pinia en su lugar)
+- ❌ Props drilling excesivo (más de 2-3 niveles)
+- ❌ Acceso directo al DOM cuando existe una alternativa reactiva
+- ❌ Estado duplicado entre padre e hijo
+- ❌ Emitir eventos con nombres genéricos como 'update' sin contexto

@@ -1,0 +1,20 @@
+Bindeo bidireccional con v-model
+---------------------------------------------
+
+El bindeo bidireccional con `v-model`  permite sincronizar automáticamente el valor de un elemento de formulario con una propiedad del componente. Esto significa que cualquier cambio en el elemento de formulario actualizará la propiedad del componente y viceversa.
+
+Lo podemos utilizar con inputs de texto, checkboxes, radios, selects y otros elementos de formulario.
+
+Por ejemplo
+<input type="checkbox" v-model="termsAccepted" /> Acepto los términos y condiciones
+
+En el script del componente, debemos definir la variable termsAccepted y su valor inicial ademas de hacerlo reactivo (ref). (no olvidar importar ref desde 'vue')
+
+En el caso de un select, podemos hacer algo como esto:
+<select name="" id="" v-model="selectedCountry">
+      <option value="Argentina">Argentina</option>
+      <option value="Francia">Francia</option>
+      <option value="España">España</option>
+</select>
+
+Y en el script del componente, definimos selectedCountry como una variable reactiva (ref) con un valor inicial.

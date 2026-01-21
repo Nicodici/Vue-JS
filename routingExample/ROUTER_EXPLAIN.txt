@@ -1,0 +1,53 @@
+
+Objetivo
+- Añadir soporte de enrutado con Vue Router (v4) y dejar el proyecto listo para usar rutas.
+
+Archivos creados
+- src/router/index.js -> configuración del router y definición de rutas (Home, About)
+- src/views/Home.vue -> vista de ejemplo "Home"
+- src/views/About.vue -> vista de ejemplo "About"
+
+Archivos modificados
+- src/main.js -> registro del router: `createApp(App).use(router).mount('#app')`
+- src/App.vue -> añadido `router-link` para navegación y `router-view` para renderizar las vistas
+
+Contenido clave (resumen):
+- `src/router/index.js` contiene:
+  import { createRouter, createWebHistory } from 'vue-router'
+  import Home from '../views/Home.vue'
+  import About from '../views/About.vue'
+
+  const routes = [
+    { path: '/', name: 'Home', component: Home },
+    { path: '/about', name: 'About', component: About }
+  ]
+
+  const router = createRouter({ history: createWebHistory(), routes })
+  export default router
+
+- `src/main.js` ahora importa el router: `import router from './router'` y lo usa con `.use(router)`.
+- `src/App.vue` tiene una barra de navegación simple:
+  <router-link to="/">Home</router-link>
+  <router-link to="/about">About</router-link>
+  y el `<router-view />` para mostrar las vistas.
+
+Comandos para probar localmente
+1. Instalar la dependencia (si no está instalada):
+   npm install vue-router@4
+
+2. Iniciar el servidor de desarrollo:
+   npm run dev
+
+Notas y recomendaciones
+- Usar `createWebHistory()` para rutas limpias; si necesitas hash mode, usa `createWebHashHistory()`.
+- Añade más rutas en `src/router/index.js` y crea las vistas en `src/views/`.
+- Para rutas anidadas o protecciones (auth), añade `children` en la definición de rutas o `beforeEach` en el router.
+
+Dónde buscar los archivos
+- [src/router/index.js](src/router/index.js)
+- [src/views/Home.vue](src/views/Home.vue)
+- [src/views/About.vue](src/views/About.vue)
+- [src/main.js](src/main.js)
+- [src/App.vue](src/App.vue)
+
+Si quieres, instalo `vue-router` aquí y arranco el servidor para probarlo. ¿Quieres que lo haga?

@@ -1,0 +1,476 @@
+=====================================
+CICLO DE VIDA DE COMPONENTES EN VUE.JS
+=====================================
+
+El ciclo de vida de un componente en Vue.js describe las diferentes etapas por las que pasa desde su creación hasta su destrucción. Cada fase tiene hooks (ganchos) específicos que permiten ejecutar código en momentos precisos del ciclo de vida.
+
+=====================================
+FASES DEL CICLO DE VIDA
+=====================================
+
+1. FASE DE CREACIÓN (INITIALIZATION)
+-------------------------------------
+El componente se instancia y se inicializan sus propiedades y eventos.
+
+Proceso interno:
+- Se crea la instancia del componente en memoria
+- Se inicializan eventos y el ciclo de vida
+- Se configuran las injecciones (provide/inject)
+- Se establece la reactividad del estado (data/state)
+- Se verifica si el componente tiene la opción "el" para el montaje automático
+
+Hooks disponibles:
+
+• beforeCreate() - Options API
+  - Se ejecuta inmediatamente después de crear la instancia
+  - NO hay acceso a data, computed, methods ni DOM
+  - Útil para plugins o inicializaciones muy tempranas
+
+• created() - Options API
+  - Se ejecuta después de configurar la reactividad
+  - SÍ hay acceso a data, computed, methods y props
+  - NO hay acceso al DOM ($el no está disponible)
+  - Ideal para: llamadas API iniciales, configurar watchers, inicializar datos
+
+• setup() - Composition API
+  - Se ejecuta antes de created()
+  - Es el punto de entrada para Composition API
+  - Retorna el estado y funciones que estarán disponibles en el template
+  - Recibe props y context como parámetros
+
+Ejemplo Options API:
+```javascript
+export default {
+  data() {
+    return { usuarios: [] }
+  },
+  beforeCreate() {
+    console.log('Instancia creada, sin acceso a data')
+  },
+  created() {
+    console.log('Reactividad configurada:', this.usuarios)
+    // Llamada API inicial
+    this.cargarUsuarios()
+  }
+}
+```
+
+Ejemplo Composition API:
+```javascript
+import { ref, onMounted } from 'vue'
+
+export default {
+  setup() {
+    const usuarios = ref([])
+    
+    // Código aquí se ejecuta durante la creación
+    console.log('Setup ejecutándose')
+    
+    return { usuarios }
+  }
+}
+```
+
+2. FASE DE MONTAJE (MOUNTING)
+------------------------------
+El componente se inserta en el DOM y se renderiza por primera vez.
+
+Proceso interno:
+- Se compila el template en una función de renderizado
+- Se crea el Virtual DOM inicial
+- Se ejecutan las directivas
+- Se inserta el componente en el DOM real
+- Se establecen las referencias (refs)
+
+Hooks disponibles:
+
+• beforeMount() - Options API
+  - Se ejecuta justo antes de insertar el componente en el DOM
+  - El template está compilado pero no renderizado
+  - Raramente usado, útil para manipulaciones pre-renderizado
+
+• onBeforeMount() - Composition API
+  - Equivalente a beforeMount() en Composition API
+
+• mounted() - Options API
+  - Se ejecuta después de que el componente se inserta en el DOM
+  - SÍ hay acceso completo al DOM ($el y refs están disponibles)
+  - Ideal para: manipulación del DOM, inicializar librerías de terceros,
+    configurar event listeners, iniciar animaciones
+
+• onMounted() - Composition API
+  - Equivalente a mounted() en Composition API
+  - Más comúnmente usado en proyectos modernos
+
+⚠️ IMPORTANTE: mounted() NO garantiza que todos los componentes hijos estén montados.
+   Para esperar a que todo el árbol esté renderizado, usa nextTick():
+
+```javascript
+mounted() {
+  this.$nextTick(() => {
+    // Todo el árbol está renderizado
+  })
+}
+```
+
+Ejemplo Options API:
+```javascript
+export default {
+  beforeMount() {
+    console.log('A punto de montar, DOM no disponible')
+  },
+  mounted() {
+    console.log('Montado, DOM disponible:', this.$el)
+    // Inicializar biblioteca de gráficos
+    this.inicializarGrafico()
+    // Configurar listener
+    window.addEventListener('resize', this.handleResize)
+  }
+}
+```
+
+Ejemplo Composition API:
+```javascript
+import { ref, onMounted } from 'vue'
+
+export default {
+  setup() {
+    const graficoRef = ref(null)
+    
+    onMounted(() => {
+      console.log('Componente montado')
+      // Acceder al DOM
+      if (graficoRef.value) {
+        inicializarGrafico(graficoRef.value)
+      }
+    })
+    
+    return { graficoRef }
+  }
+}
+```
+
+3. FASE DE ACTUALIZACIÓN (UPDATING)
+------------------------------------
+Cada vez que cambian las propiedades reactivas o el estado del componente, se vuelve a renderizar.
+
+Proceso interno:
+- Se detecta un cambio en datos reactivos
+- Se recalcula el Virtual DOM
+- Se comparan el Virtual DOM nuevo con el anterior (diffing)
+- Se actualizan solo los nodos del DOM que cambiaron (patching)
+
+Hooks disponibles:
+
+• beforeUpdate() - Options API
+  - Se ejecuta antes de que el DOM se actualice
+  - El estado ya cambió pero el DOM todavía tiene los valores antiguos
+  - Útil para capturar el estado del DOM antes de la actualización
+
+• onBeforeUpdate() - Composition API
+  - Equivalente a beforeUpdate() en Composition API
+
+• updated() - Options API
+  - Se ejecuta después de que el DOM se actualiza
+  - Útil para operaciones que dependen del DOM actualizado
+  - ⚠️ Evitar cambiar estado aquí (puede causar loops infinitos)
+
+• onUpdated() - Composition API
+  - Equivalente a updated() en Composition API
+
+⚠️ CUIDADO: No cambies el estado dentro de updated() o crearás un bucle infinito.
+   Si necesitas reaccionar a cambios, usa watchers en su lugar.
+
+Ejemplo Options API:
+```javascript
+export default {
+  data() {
+    return { contador: 0 }
+  },
+  beforeUpdate() {
+    console.log('Antes de actualizar:', this.$el.textContent)
+  },
+  updated() {
+    console.log('Después de actualizar:', this.$el.textContent)
+    // ❌ MAL: this.contador++ (loop infinito)
+    // ✅ BIEN: Leer el DOM, ejecutar animaciones
+  }
+}
+```
+
+Ejemplo Composition API con watcher:
+```javascript
+import { ref, watch } from 'vue'
+
+export default {
+  setup() {
+    const contador = ref(0)
+    
+    watch(contador, (nuevoValor, valorAnterior) => {
+      console.log(`Cambió de ${valorAnterior} a ${nuevoValor}`)
+    })
+    
+    return { contador }
+  }
+}
+```
+
+4. FASE DE DESMONTAJE (UNMOUNTING)
+-----------------------------------
+El componente se elimina del DOM y se liberan recursos.
+
+Proceso interno:
+- Se desactivan watchers y efectos
+- Se eliminan event listeners internos
+- Se destruyen componentes hijos
+- Se elimina el componente del DOM
+- Se limpia la memoria
+
+Hooks disponibles:
+
+• beforeUnmount() - Options API / Vue 3
+  - Se ejecuta justo antes de desmontar el componente
+  - El componente todavía es completamente funcional
+  - Ideal para limpieza: remover listeners, cancelar timers, cerrar conexiones
+
+• onBeforeUnmount() - Composition API
+
+• unmounted() - Options API / Vue 3
+  - Se ejecuta después de desmontar el componente
+  - El componente y sus hijos están desmontados
+  - Ya no hay acceso al DOM
+
+• onUnmounted() - Composition API
+
+⚠️ NOTA: En Vue 2 estos hooks se llamaban beforeDestroy() y destroyed()
+
+Ejemplo Options API:
+```javascript
+export default {
+  data() {
+    return { intervalo: null }
+  },
+  mounted() {
+    this.intervalo = setInterval(() => {
+      console.log('Tick')
+    }, 1000)
+    window.addEventListener('resize', this.handleResize)
+  },
+  beforeUnmount() {
+    console.log('A punto de desmontar')
+    // Limpiar intervalo
+    if (this.intervalo) {
+      clearInterval(this.intervalo)
+    }
+    // Remover listeners
+    window.removeEventListener('resize', this.handleResize)
+  },
+  unmounted() {
+    console.log('Componente completamente desmontado')
+  }
+}
+```
+
+Ejemplo Composition API:
+```javascript
+import { ref, onMounted, onUnmounted } from 'vue'
+
+export default {
+  setup() {
+    let intervalo = null
+    
+    onMounted(() => {
+      intervalo = setInterval(() => {
+        console.log('Tick')
+      }, 1000)
+    })
+    
+    onUnmounted(() => {
+      if (intervalo) {
+        clearInterval(intervalo)
+      }
+    })
+    
+    return {}
+  }
+}
+```
+
+=====================================
+HOOKS ADICIONALES
+=====================================
+
+5. HOOKS DE CAPTURA DE ERRORES
+-------------------------------
+
+• errorCaptured(err, instance, info) - Options API
+  - Captura errores de componentes descendientes
+  - Útil para logging o mostrar mensajes de error personalizados
+  - Retornar false previene que el error se propague
+
+• onErrorCaptured() - Composition API
+
+Ejemplo:
+```javascript
+export default {
+  errorCaptured(err, instance, info) {
+    console.error('Error capturado:', err)
+    console.log('En componente:', instance)
+    console.log('Info:', info)
+    // Enviar a servicio de logging
+    return false // Detener propagación
+  }
+}
+```
+
+6. HOOKS DE ACTIVACIÓN (KeepAlive)
+-----------------------------------
+
+Cuando un componente está envuelto en <keep-alive>:
+
+• activated() - Options API
+  - Se ejecuta cuando un componente cacheado se reactiva
+  - Útil para refrescar datos o reanudar operaciones
+
+• onActivated() - Composition API
+
+• deactivated() - Options API
+  - Se ejecuta cuando un componente cacheado se desactiva
+  - Útil para pausar operaciones costosas
+
+• onDeactivated() - Composition API
+
+Ejemplo:
+```vue
+<template>
+  <keep-alive>
+    <component :is="componenteActual"></component>
+  </keep-alive>
+</template>
+
+<script>
+export default {
+  activated() {
+    console.log('Componente activado desde caché')
+    this.refrescarDatos()
+  },
+  deactivated() {
+    console.log('Componente desactivado (pero en caché)')
+    this.pausarAnimaciones()
+  }
+}
+</script>
+```
+
+7. HOOKS DE RENDERIZADO
+------------------------
+
+• renderTracked(event) - Composition API
+  - Se ejecuta cuando una dependencia reactiva es rastreada
+  - Solo en modo desarrollo
+  - Útil para debugging
+
+• renderTriggered(event) - Composition API
+  - Se ejecuta cuando una dependencia causa re-renderizado
+  - Solo en modo desarrollo
+  - Útil para debugging
+
+=====================================
+DIAGRAMA DEL CICLO DE VIDA
+=====================================
+
+OPTIONS API (Vue 3):
+--------------------
+beforeCreate()
+    ↓
+created()           → Inicialización completa
+    ↓
+beforeMount()
+    ↓
+mounted()           → Componente en el DOM
+    ↓
+[Estado Montado]
+    ↓ (cuando cambian datos reactivos)
+beforeUpdate()
+    ↓
+updated()
+    ↓
+[Estado Actualizado]
+    ↓ (cuando se desmonta)
+beforeUnmount()
+    ↓
+unmounted()         → Componente eliminado
+
+COMPOSITION API:
+----------------
+setup()
+    ↓
+onBeforeMount()
+    ↓
+onMounted()
+    ↓
+onBeforeUpdate()
+    ↓
+onUpdated()
+    ↓
+onBeforeUnmount()
+    ↓
+onUnmounted()
+
+=====================================
+MEJORES PRÁCTICAS
+=====================================
+
+✅ DO (Hacer):
+- Usar onMounted() para acceder al DOM
+- Limpiar recursos en onUnmounted() (timers, listeners, suscripciones)
+- Usar watchers en lugar de updated() para reaccionar a cambios
+- Usar created()/setup() para llamadas API iniciales
+- Usar errorCaptured() para manejo de errores a nivel de árbol
+- Preferir Composition API en proyectos nuevos para mejor composición
+
+❌ DON'T (No hacer):
+- Modificar estado en updated() (causa loops infinitos)
+- Asumir que todos los hijos están montados en mounted()
+- Olvidar limpiar recursos (memory leaks)
+- Hacer operaciones DOM en created() (DOM no disponible aún)
+- Usar lifecycle hooks para lógica de negocio compleja (usar composables)
+- Mezclar Options API y Composition API en el mismo componente sin razón
+
+=====================================
+CASOS DE USO COMUNES
+=====================================
+
+1. Llamadas API al cargar:
+   → created() o setup()
+
+2. Inicializar librerías de terceros (gráficos, mapas):
+   → onMounted()
+
+3. Configurar event listeners globales:
+   → onMounted() + limpiar en onUnmounted()
+
+4. Acceder a elementos del DOM:
+   → onMounted()
+
+5. Reaccionar a cambios de datos:
+   → watch() o computed(), NO updated()
+
+6. Limpiar intervalos, timers, WebSockets:
+   → onUnmounted()
+
+7. Animaciones de entrada:
+   → onMounted()
+
+8. Logs y debugging:
+   → renderTracked() y renderTriggered()
+
+=====================================
+RECURSOS Y REFERENCIAS
+=====================================
+
+- Documentación oficial: https://vuejs.org/guide/essentials/lifecycle.html
+- Diagrama interactivo: https://vuejs.org/guide/essentials/lifecycle.html#lifecycle-diagram
+- API Reference: https://vuejs.org/api/composition-api-lifecycle.html
+
+NOTA: Episodio 5 explica cómo funciona el montaje en detalle
