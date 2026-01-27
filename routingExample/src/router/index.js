@@ -10,12 +10,20 @@ import { createRouter, createWebHistory } from "vue-router";
 //Se importan los componentes que se usarán en las rutas
 import Home from "@/views/Home.vue";
 import About from "@/views/About.vue";
+import PostlistComponentsView from "@/views/PostlistComponentsView.vue";
+import PostListDetailView from "@/views/PostListDetailView.vue";
 
 // Creamos el enrutador con las rutas definidas
 const routes = [
-    // Primero se define la ruta, luego el nombre y el componente asociado(Debe coincidir con el nombre del archivo)
+  
+  // Redireccion de una URL hacia otra
+  { path: '/', redirect: '/post' },
+
+  // Primero se define la ruta, luego el nombre y el componente asociado(Debe coincidir con el nombre del archivo)
   { path: "/", name: "Home", component: Home },
   { path: "/about", name: "About", component: About },
+  { path: "/post", name: "Post", component: PostlistComponentsView },
+  { path: "/post/:id", name: "PostDetail", component: PostListDetailView },
 ];
 
 // Configuración del enrutador, es un objeto que Vue usará para manejar las rutas
