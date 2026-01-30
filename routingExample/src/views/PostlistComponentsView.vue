@@ -2,8 +2,14 @@
   <div class="postContainer mb-3">
     <h1>Posts List</h1>
     <ul>
-      <li v-for="post in posts" :key="post.id" @click="$router.push({name: 'PostDetail', params: { id: post.id }})">
-        <div class="  card-header bg-primary text-white w-100 d-flex justify-content-center align-items-center">
+      <li
+        v-for="post in posts"
+        :key="post.id"
+        @click="$router.push({ name: 'PostDetail', params: { id: post.id } })"
+      >
+        <div
+          class="card-header bg-primary text-white w-100 d-flex justify-content-center align-items-center"
+        >
           <h3 class="mb-0 d-flex">{{ post.id }}</h3>
         </div>
         <p class="text-center">{{ post.title }}</p>
@@ -12,7 +18,7 @@
   </div>
 </template>
 
-<script >
+<script>
 import PostService from "../services/services.js";
 import { defineComponent, onMounted } from "vue";
 
@@ -68,13 +74,13 @@ ul {
     flex-direction: column;
     align-items: center;
     background-color: rgb(247, 247, 247);
-      p{
-        padding: 10px;
-      }
+    p {
+      padding: 10px;
+    }
   }
   li:hover {
     // usar color.adjust-color para modificar colores en SCSS
-    background-color: color.adjust($dark-gray, $lightness: 50%);
+    background-color: color.adjust($dark-gray, $lightness: 70%);
     cursor: pointer;
   }
 }

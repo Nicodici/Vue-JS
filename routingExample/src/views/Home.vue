@@ -1,7 +1,7 @@
 <template>
   <section>
-    <h1>Home</h1>
-    <p>Bienvenido a la página principal.</p>
+    <h3>Bienvenido a la página principal.</h3>
+    <h5>Esta pagina consume una API REST para mostrar posts.</h5>
   </section>
 </template>
 

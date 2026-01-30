@@ -1,0 +1,43 @@
+Proyecto de autenticación:
+primero creamos una view con el formulario de inicio de sesión.
+vindeamos los inputs (v-model) con las variables del script
+(en el script debemos importar la funcion ref para declarar las variables reactivas).
+
+una vez que tengamos esto debemos conectar el frontend con el backend para poder enviarle los datos.
+
+
+Estructura del backend al cual nos vamos a conectar:
+
+Cuando hacemos una petición POST a /auth/login, el backend espera recibir un cuerpo JSON con las siguientes propiedades:
+
+Para practicar GET y POST:
+
+JSONPlaceholder - https://jsonplaceholder.typicode.com
+GET: https://jsonplaceholder.typicode.com/posts
+POST: https://jsonplaceholder.typicode.com/posts
+Para practicar autenticación:
+
+ReqRes - https://reqres.in
+POST login: https://reqres.in/api/login
+Usuarios de prueba en su documentación
+{
+    "email": "demo@gmail.com",
+    "password": "cuarta",
+    "id": 101
+}
+
+Si las credenciales son correctas, el backend responde con un objeto JSON que contiene un token de autenticación y la información del usuario:
+
+{
+  "data": {
+    "access_token": "string",
+    "user": {
+      "id": "string",
+      "email": "string",
+      "first_name": "string",
+      "last_name": "string"
+    },
+    "expires": "string"
+  }
+}
+

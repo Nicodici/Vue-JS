@@ -44,14 +44,23 @@ onMounted(async () => {
   console.log("ID del post:", route.params.id);
   
   // Si los posts no están cargados, los cargamos primero
-  if (service.posts.value.length === 0) {
-    await service.fetchPosts();
-  }
+//   if (service.posts.value.length === 0) {
+//     await service.fetchPosts();
+//   }
   
   // Ahora buscamos el post por ID
-  post.value = service.getPostById(route.params.id);
-  console.log("Post encontrado:", post.value);
+//   post.value = service.getPostById(route.params.id);
+//   console.log("Post encontrado:", post.value);
+
+    const response = await service.fetchPostById(route.params.id);
+    post.value = response;
+    console.log("Post encontrado:", post.value);
+
+
 });
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+@use "sass:color";
+
+</style>

@@ -10,13 +10,7 @@ class PostService {
   }
 
   getPosts() {
-    
     return this.posts;
-  }
-
-  getPostById(id) {
-    //buscamos el post en el array de posts usando el id proporcionado
-    return this.posts.value.find((post) => post.id === parseInt(id));
   }
 
   //metodo asincrono para obtener los posts de una API externa
@@ -25,7 +19,7 @@ class PostService {
     try {
       //solicitamos los datos a la API externa, recibimos una promesa
       const response = await fetch(
-        "https://jsonplaceholder.typicode.com/posts"
+        "https://jsonplaceholder.typicode.com/posts",
       );
       //convertimos la respuesta a formato JSON
       const data = await response.json();
@@ -36,13 +30,28 @@ class PostService {
       console.log("error");
     }
   }
+
+  //Metodo que obtiene un post por su ID
+  async fetchPostById(id) {
+    try {
+      const url = `https://jsonplaceholder.typicode.com/posts/${id}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.log("error");}
+  }
+
+  getPostById(id) {
+    //metodo para obtener un post por su ID desde la propiedad reactiva posts
+    return this.posts.value.find((post) => post.id === parseInt(id));
+  }
 }
 
 export default PostService;
 
 //otra forma de exportar
 // export const postService = PostService();
-
 
 // Cada forma tiene un propósito diferente:
 
@@ -68,7 +77,5 @@ export default PostService;
 // // Con export const postService:
 // import { postService } from './services.js'
 // postService.fetchPosts()  // Ya está instanciado
-
-
 
 // Para tu caso, como posts es una variable reactiva que probablemente quieras compartir entre componentes, la segunda forma (singleton) es mejor. Así todos los componentes verán los mismos datos actualizados.
