@@ -36,6 +36,7 @@ class AuthService {
       const data = await response.json()
       //Se almacena el token JWT recibido en la propiedad jwt, tener en cuenta que data.token es donde el servidor devuelve el token, el nombre de la propiedad puede variar según la implementación del servidor
       this.jwt.value = data.token
+      return true;
       
     } catch (error) {
       console.error('Error during login:', error)

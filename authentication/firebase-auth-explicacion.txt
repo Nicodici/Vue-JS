@@ -1,0 +1,826 @@
+═══════════════════════════════════════════════════════════════════════════
+    GUÍA COMPLETA DE AUTENTICACIÓN CON FIREBASE EN VUE 3
+═══════════════════════════════════════════════════════════════════════════
+
+📋 ÍNDICE
+---------
+1. Configuración Inicial
+2. Métodos de Autenticación
+3. Ejemplos Prácticos
+4. Manejo de Errores
+5. Buenas Prácticas
+6. Estado de Autenticación
+
+
+═══════════════════════════════════════════════════════════════════════════
+1. CONFIGURACIÓN INICIAL
+═══════════════════════════════════════════════════════════════════════════
+
+PASO 1: Instalar Firebase
+--------------------------
+npm install firebase
+
+
+PASO 2: Crear archivo de configuración (src/firebase/config.js)
+---------------------------------------------------------------
+import { initializeApp } from 'firebase/app'
+import { getAuth } from 'firebase/auth'
+
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_AUTH_DOMAIN",
+  projectId: "TU_PROJECT_ID",
+  storageBucket: "TU_STORAGE_BUCKET",
+  messagingSenderId: "TU_MESSAGING_SENDER_ID",
+  appId: "TU_APP_ID"
+}
+
+// Inicializar Firebase
+const app = initializeApp(firebaseConfig)
+
+// Obtener la instancia de autenticación
+const auth = getAuth(app)
+
+export { auth }
+
+
+NOTA: Obtén estas credenciales desde Firebase Console > Project Settings > General
+
+
+═══════════════════════════════════════════════════════════════════════════
+2. MÉTODOS DE AUTENTICACIÓN
+═══════════════════════════════════════════════════════════════════════════
+
+IMPORTACIÓN BÁSICA
+------------------
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
+         signOut, onAuthStateChanged } from 'firebase/auth'
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔹 getAuth()
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DESCRIPCIÓN:
+------------
+Obtiene la instancia de autenticación de Firebase. Es el punto de entrada
+para todas las operaciones de autenticación.
+
+SINTAXIS:
+---------
+const auth = getAuth(app)
+
+PARÁMETROS:
+-----------
+- app: Instancia de la aplicación Firebase (opcional si ya existe una por defecto)
+
+RETORNA:
+--------
+Objeto Auth que permite realizar operaciones de autenticación
+
+EJEMPLO:
+--------
+import { getAuth } from 'firebase/auth'
+import { app } from './firebase/config'
+
+const auth = getAuth(app)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔹 signInWithEmailAndPassword()
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DESCRIPCIÓN:
+------------
+Autentica a un usuario existente usando correo electrónico y contraseña.
+Es el método más común para iniciar sesión.
+
+SINTAXIS:
+---------
+signInWithEmailAndPassword(auth, email, password)
+
+PARÁMETROS:
+-----------
+- auth: Instancia de autenticación obtenida con getAuth()
+- email: String - Correo electrónico del usuario
+- password: String - Contraseña del usuario
+
+RETORNA:
+--------
+Promise<UserCredential> - Promesa que resuelve con las credenciales del usuario
+
+OBJETO UserCredential CONTIENE:
+--------------------------------
+{
+  user: {
+    uid: "ID único del usuario",
+    email: "correo@ejemplo.com",
+    displayName: "Nombre del usuario",
+    photoURL: "URL de la foto",
+    emailVerified: true/false,
+    ...
+  },
+  providerId: "password",
+  operationType: "signIn"
+}
+
+EJEMPLO COMPLETO:
+-----------------
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import { auth } from './firebase/config'
+
+const loginUser = async (email, password) => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password)
+    const user = userCredential.user
+    console.log('Usuario autenticado:', user.email)
+    console.log('UID:', user.uid)
+    return user
+  } catch (error) {
+    console.error('Error al iniciar sesión:', error.code, error.message)
+    throw error
+  }
+}
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔹 createUserWithEmailAndPassword()
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DESCRIPCIÓN:
+------------
+Crea una nueva cuenta de usuario con correo electrónico y contraseña.
+Automáticamente inicia sesión después de crear la cuenta.
+
+SINTAXIS:
+---------
+createUserWithEmailAndPassword(auth, email, password)
+
+PARÁMETROS:
+-----------
+- auth: Instancia de autenticación
+- email: String - Correo electrónico del nuevo usuario
+- password: String - Contraseña (mínimo 6 caracteres)
+
+RETORNA:
+--------
+Promise<UserCredential> - Promesa con las credenciales del usuario creado
+
+REQUISITOS DE CONTRASEÑA:
+--------------------------
+- Mínimo 6 caracteres
+- Firebase recomienda usar contraseñas seguras
+
+EJEMPLO COMPLETO:
+-----------------
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
+import { auth } from './firebase/config'
+
+const registerUser = async (email, password, displayName) => {
+  try {
+    // Crear usuario
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+    const user = userCredential.user
+    
+    // Actualizar perfil con nombre (opcional)
+    await updateProfile(user, {
+      displayName: displayName
+    })
+    
+    console.log('Usuario registrado:', user.email)
+    return user
+  } catch (error) {
+    console.error('Error al registrar:', error.code, error.message)
+    throw error
+  }
+}
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔹 signOut()
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DESCRIPCIÓN:
+------------
+Cierra la sesión del usuario actual. Limpia el token de autenticación
+y desvincula al usuario de la aplicación.
+
+SINTAXIS:
+---------
+signOut(auth)
+
+PARÁMETROS:
+-----------
+- auth: Instancia de autenticación
+
+RETORNA:
+--------
+Promise<void> - Promesa que se resuelve cuando se cierra la sesión
+
+EJEMPLO COMPLETO:
+-----------------
+import { signOut } from 'firebase/auth'
+import { auth } from './firebase/config'
+import { useRouter } from 'vue-router'
+
+const logoutUser = async () => {
+  try {
+    await signOut(auth)
+    console.log('Sesión cerrada exitosamente')
+    // Redirigir a login
+    router.push('/login')
+  } catch (error) {
+    console.error('Error al cerrar sesión:', error)
+    throw error
+  }
+}
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔹 onAuthStateChanged()
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DESCRIPCIÓN:
+------------
+Observador que escucha cambios en el estado de autenticación del usuario.
+Se ejecuta cuando el usuario inicia sesión, cierra sesión o cuando se
+inicializa la aplicación.
+
+SINTAXIS:
+---------
+onAuthStateChanged(auth, callback)
+
+PARÁMETROS:
+-----------
+- auth: Instancia de autenticación
+- callback: Función que recibe el usuario actual (o null si no hay sesión)
+
+RETORNA:
+--------
+Función unsubscribe para detener la escucha
+
+CUÁNDO SE EJECUTA:
+------------------
+1. Al cargar la aplicación (verifica si hay sesión activa)
+2. Cuando un usuario inicia sesión
+3. Cuando un usuario cierra sesión
+4. Cuando el token de sesión se refresca
+
+EJEMPLO COMPLETO EN VUE 3:
+---------------------------
+import { onAuthStateChanged } from 'firebase/auth'
+import { auth } from './firebase/config'
+import { ref, onMounted, onUnmounted } from 'vue'
+
+const user = ref(null)
+const isAuthenticated = ref(false)
+const loading = ref(true)
+
+let unsubscribe = null
+
+onMounted(() => {
+  // Iniciar observador
+  unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    if (currentUser) {
+      // Usuario autenticado
+      user.value = currentUser
+      isAuthenticated.value = true
+      console.log('Usuario conectado:', currentUser.email)
+    } else {
+      // No hay usuario autenticado
+      user.value = null
+      isAuthenticated.value = false
+      console.log('No hay usuario autenticado')
+    }
+    loading.value = false
+  })
+})
+
+onUnmounted(() => {
+  // Detener observador al desmontar componente
+  if (unsubscribe) {
+    unsubscribe()
+  }
+})
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔹 OTROS MÉTODOS IMPORTANTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+import { 
+  sendPasswordResetEmail,     // Enviar email para restablecer contraseña
+  sendEmailVerification,       // Enviar email de verificación
+  updateProfile,               // Actualizar perfil (nombre, foto)
+  updateEmail,                 // Cambiar correo electrónico
+  updatePassword,              // Cambiar contraseña
+  deleteUser,                  // Eliminar cuenta de usuario
+  signInWithPopup,            // Iniciar sesión con popup (Google, Facebook)
+  signInWithRedirect,         // Iniciar sesión con redirección
+  GoogleAuthProvider,         // Proveedor de Google
+  FacebookAuthProvider,       // Proveedor de Facebook
+  TwitterAuthProvider         // Proveedor de Twitter
+} from 'firebase/auth'
+
+
+═══════════════════════════════════════════════════════════════════════════
+3. EJEMPLOS PRÁCTICOS
+═══════════════════════════════════════════════════════════════════════════
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EJEMPLO 1: Componente de Login Completo
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<template>
+  <div class="login-container">
+    <h2>Iniciar Sesión</h2>
+    <form @submit.prevent="handleLogin">
+      <input 
+        v-model="email" 
+        type="email" 
+        placeholder="Correo electrónico"
+        required
+      />
+      <input 
+        v-model="password" 
+        type="password" 
+        placeholder="Contraseña"
+        required
+      />
+      <button type="submit" :disabled="loading">
+        {{ loading ? 'Cargando...' : 'Iniciar Sesión' }}
+      </button>
+      <p v-if="error" class="error">{{ error }}</p>
+    </form>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import { auth } from '@/firebase/config'
+import { useRouter } from 'vue-router'
+
+const email = ref('')
+const password = ref('')
+const loading = ref(false)
+const error = ref(null)
+const router = useRouter()
+
+const handleLogin = async () => {
+  loading.value = true
+  error.value = null
+  
+  try {
+    const userCredential = await signInWithEmailAndPassword(
+      auth, 
+      email.value, 
+      password.value
+    )
+    console.log('Login exitoso:', userCredential.user.email)
+    router.push('/dashboard')
+  } catch (err) {
+    console.error('Error:', err)
+    error.value = getMensajeError(err.code)
+  } finally {
+    loading.value = false
+  }
+}
+
+const getMensajeError = (code) => {
+  const errores = {
+    'auth/invalid-email': 'Correo electrónico inválido',
+    'auth/user-disabled': 'Usuario deshabilitado',
+    'auth/user-not-found': 'Usuario no encontrado',
+    'auth/wrong-password': 'Contraseña incorrecta',
+    'auth/invalid-credential': 'Credenciales inválidas'
+  }
+  return errores[code] || 'Error al iniciar sesión'
+}
+</script>
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EJEMPLO 2: Componente de Registro
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<script setup>
+import { ref } from 'vue'
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
+import { auth } from '@/firebase/config'
+import { useRouter } from 'vue-router'
+
+const email = ref('')
+const password = ref('')
+const displayName = ref('')
+const loading = ref(false)
+const error = ref(null)
+const router = useRouter()
+
+const handleRegister = async () => {
+  loading.value = true
+  error.value = null
+  
+  try {
+    // Crear usuario
+    const userCredential = await createUserWithEmailAndPassword(
+      auth, 
+      email.value, 
+      password.value
+    )
+    
+    // Actualizar perfil con nombre
+    await updateProfile(userCredential.user, {
+      displayName: displayName.value
+    })
+    
+    console.log('Usuario registrado:', userCredential.user.email)
+    router.push('/dashboard')
+  } catch (err) {
+    console.error('Error:', err)
+    error.value = getMensajeError(err.code)
+  } finally {
+    loading.value = false
+  }
+}
+
+const getMensajeError = (code) => {
+  const errores = {
+    'auth/email-already-in-use': 'El correo ya está registrado',
+    'auth/invalid-email': 'Correo electrónico inválido',
+    'auth/weak-password': 'Contraseña débil (mínimo 6 caracteres)',
+    'auth/operation-not-allowed': 'Operación no permitida'
+  }
+  return errores[code] || 'Error al registrar usuario'
+}
+</script>
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EJEMPLO 3: Composable para Autenticación (useAuth.js)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// src/composables/useAuth.js
+import { ref, onMounted, onUnmounted } from 'vue'
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from 'firebase/auth'
+import { auth } from '@/firebase/config'
+import { useRouter } from 'vue-router'
+
+export function useAuth() {
+  const user = ref(null)
+  const loading = ref(true)
+  const error = ref(null)
+  const router = useRouter()
+  
+  let unsubscribe = null
+  
+  // Inicializar observador de autenticación
+  onMounted(() => {
+    unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      user.value = currentUser
+      loading.value = false
+    })
+  })
+  
+  // Limpiar observador
+  onUnmounted(() => {
+    if (unsubscribe) unsubscribe()
+  })
+  
+  // Login
+  const login = async (email, password) => {
+    loading.value = true
+    error.value = null
+    try {
+      const credential = await signInWithEmailAndPassword(auth, email, password)
+      user.value = credential.user
+      return user.value
+    } catch (err) {
+      error.value = err
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+  
+  // Registro
+  const register = async (email, password) => {
+    loading.value = true
+    error.value = null
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, email, password)
+      user.value = credential.user
+      return user.value
+    } catch (err) {
+      error.value = err
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+  
+  // Logout
+  const logout = async () => {
+    try {
+      await signOut(auth)
+      user.value = null
+      router.push('/login')
+    } catch (err) {
+      error.value = err
+      throw err
+    }
+  }
+  
+  return {
+    user,
+    loading,
+    error,
+    login,
+    register,
+    logout
+  }
+}
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EJEMPLO 4: Proteger Rutas con Guards
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// src/router/index.js
+import { createRouter, createWebHistory } from 'vue-router'
+import { auth } from '@/firebase/config'
+
+const routes = [
+  {
+    path: '/',
+    name: 'Home',
+    component: () => import('@/views/Home.vue')
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/Login.vue'),
+    meta: { requiresGuest: true }
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('@/views/Dashboard.vue'),
+    meta: { requiresAuth: true }
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+// Guard global
+router.beforeEach((to, from, next) => {
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const requiresGuest = to.matched.some(record => record.meta.requiresGuest)
+  const currentUser = auth.currentUser
+  
+  if (requiresAuth && !currentUser) {
+    next('/login')
+  } else if (requiresGuest && currentUser) {
+    next('/dashboard')
+  } else {
+    next()
+  }
+})
+
+export default router
+
+
+═══════════════════════════════════════════════════════════════════════════
+4. MANEJO DE ERRORES
+═══════════════════════════════════════════════════════════════════════════
+
+CÓDIGOS DE ERROR COMUNES
+-------------------------
+
+AUTH/INVALID-EMAIL
+------------------
+Causa: Formato de correo electrónico inválido
+Solución: Validar formato antes de enviar
+
+AUTH/USER-DISABLED
+------------------
+Causa: La cuenta del usuario ha sido deshabilitada
+Solución: Contactar con administrador o usar otra cuenta
+
+AUTH/USER-NOT-FOUND
+-------------------
+Causa: No existe un usuario con ese correo
+Solución: Verificar correo o registrarse
+
+AUTH/WRONG-PASSWORD
+-------------------
+Causa: Contraseña incorrecta
+Solución: Verificar contraseña o usar recuperación
+
+AUTH/EMAIL-ALREADY-IN-USE
+-------------------------
+Causa: El correo ya está registrado
+Solución: Usar otro correo o iniciar sesión
+
+AUTH/WEAK-PASSWORD
+------------------
+Causa: Contraseña demasiado débil (menos de 6 caracteres)
+Solución: Usar contraseña más fuerte
+
+AUTH/INVALID-CREDENTIAL
+-----------------------
+Causa: Credenciales inválidas o mal formadas
+Solución: Verificar datos de acceso
+
+AUTH/TOO-MANY-REQUESTS
+----------------------
+Causa: Demasiados intentos fallidos
+Solución: Esperar un tiempo o restablecer contraseña
+
+AUTH/NETWORK-REQUEST-FAILED
+---------------------------
+Causa: Problema de conexión a internet
+Solución: Verificar conexión
+
+
+FUNCIÓN HELPER PARA TRADUCIR ERRORES
+-------------------------------------
+const getErrorMessage = (errorCode) => {
+  const errorMessages = {
+    'auth/invalid-email': 'El formato del correo electrónico es inválido',
+    'auth/user-disabled': 'Esta cuenta ha sido deshabilitada',
+    'auth/user-not-found': 'No existe una cuenta con este correo',
+    'auth/wrong-password': 'Contraseña incorrecta',
+    'auth/email-already-in-use': 'Este correo ya está registrado',
+    'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres',
+    'auth/invalid-credential': 'Las credenciales proporcionadas son inválidas',
+    'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde',
+    'auth/network-request-failed': 'Error de conexión. Verifica tu internet'
+  }
+  
+  return errorMessages[errorCode] || 'Ha ocurrido un error inesperado'
+}
+
+
+═══════════════════════════════════════════════════════════════════════════
+5. BUENAS PRÁCTICAS
+═══════════════════════════════════════════════════════════════════════════
+
+✅ DO (Hacer)
+-------------
+1. Validar inputs antes de llamar métodos de Firebase
+2. Usar try-catch para manejar errores
+3. Mostrar mensajes de error amigables al usuario
+4. Limpiar observadores (unsubscribe) al desmontar componentes
+5. Usar loading states para mejorar UX
+6. Implementar guards en rutas protegidas
+7. Almacenar configuración de Firebase en variables de entorno
+8. Usar composables para reutilizar lógica de autenticación
+9. Verificar email después del registro (sendEmailVerification)
+10. Implementar recuperación de contraseña
+
+❌ DON'T (No hacer)
+-------------------
+1. No guardar credenciales de Firebase en el código fuente
+2. No exponer claves privadas en el frontend
+3. No confiar solo en validación del cliente
+4. No olvidar limpiar observadores
+5. No permitir contraseñas débiles
+6. No ignorar errores de autenticación
+7. No hacer múltiples llamadas innecesarias a Firebase
+8. No almacenar contraseñas en texto plano
+9. No confiar en auth.currentUser inmediatamente (puede ser null)
+10. No olvidar configurar reglas de seguridad en Firebase
+
+
+CONFIGURACIÓN DE SEGURIDAD EN FIREBASE
+---------------------------------------
+En Firebase Console > Authentication > Sign-in method:
+- Habilitar Email/Password
+- Configurar dominios autorizados
+- Establecer plantillas de correo personalizadas
+
+En Firestore Rules:
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+
+
+═══════════════════════════════════════════════════════════════════════════
+6. ESTADO DE AUTENTICACIÓN
+═══════════════════════════════════════════════════════════════════════════
+
+PERSISTENCIA DE SESIÓN
+-----------------------
+Firebase mantiene la sesión del usuario automáticamente usando:
+- localStorage (por defecto)
+- sessionStorage (solo para la sesión actual)
+- none (sin persistencia)
+
+Para cambiar la persistencia:
+------------------------------
+import { setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth'
+
+// Persistencia local (por defecto)
+await setPersistence(auth, browserLocalPersistence)
+
+// Solo sesión actual
+await setPersistence(auth, browserSessionPersistence)
+
+
+OBTENER USUARIO ACTUAL
+-----------------------
+// Método 1: Síncrono (puede ser null si aún está cargando)
+const user = auth.currentUser
+
+// Método 2: Con promesa (espera a que se cargue)
+const getCurrentUser = () => {
+  return new Promise((resolve, reject) => {
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      unsubscribe()
+      resolve(user)
+    }, reject)
+  })
+}
+
+
+TOKEN DE AUTENTICACIÓN
+----------------------
+Para obtener el token de ID del usuario:
+const user = auth.currentUser
+if (user) {
+  const token = await user.getIdToken()
+  console.log('Token:', token)
+  
+  // Usar token en headers de API
+  const response = await fetch('/api/data', {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+
+ACTUALIZAR TOKEN AUTOMÁTICAMENTE
+---------------------------------
+Firebase refresca el token automáticamente cada hora.
+Para forzar un refresh:
+const token = await user.getIdToken(true) // true = force refresh
+
+
+═══════════════════════════════════════════════════════════════════════════
+RECURSOS ADICIONALES
+═══════════════════════════════════════════════════════════════════════════
+
+📚 Documentación Oficial:
+https://firebase.google.com/docs/auth
+
+🔥 Firebase Console:
+https://console.firebase.google.com/
+
+💻 Ejemplos de Código:
+https://github.com/firebase/quickstart-js
+
+📖 Guías de Vue 3:
+https://vuejs.org/guide/
+
+🛡️ Reglas de Seguridad:
+https://firebase.google.com/docs/rules
+
+
+═══════════════════════════════════════════════════════════════════════════
+NOTAS FINALES
+═══════════════════════════════════════════════════════════════════════════
+
+Este documento cubre los aspectos fundamentales de la autenticación con
+Firebase en aplicaciones Vue 3. Para funcionalidades avanzadas como
+autenticación social (Google, Facebook), autenticación telefónica, o
+autenticación anónima, consultar la documentación oficial.
+
+Recuerda siempre:
+- Proteger las credenciales de Firebase
+- Implementar reglas de seguridad adecuadas
+- Validar en el backend además del frontend
+- Mantener Firebase SDK actualizado
+- Monitorear intentos de acceso sospechosos
+
+¡Buena suerte con tu proyecto! 🚀

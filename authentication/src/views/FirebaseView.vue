@@ -1,8 +1,8 @@
 <template>
   <div class="container d-flex flex-column align-items-center mt-5">
-    <h1>Backend Authentication View</h1>
+    <h1>Firebase Authentication View</h1>
     <h3>Login</h3>
-    <div class="container-fluid w-50 p-3 border mt-5">
+    <div class="container-fluid w-50 p-3 border bg-light mt-5">
       <form>
         <div class="mb-3">
           <label for="exampleInputEmail1" class="form-label">Correo electrónico</label>
@@ -30,7 +30,7 @@
           <input type="checkbox" class="form-check-input" id="exampleCheck1" />
           <label class="form-check-label" for="exampleCheck1">Recuérdame</label>
         </div>
-        <button @click.prevent="userLogin" type="submit" class="btn btn-primary">Enviar</button>
+        <button @click.prevent="authUser" type="submit" class="btn btn-primary">Enviar</button>
       </form>
       <!-- Verificación de las variables reactivas -->
       <!-- <p>Email: {{ email }}</p>
@@ -40,21 +40,13 @@
 </template>
 
 <script setup>
-import AuthService from '@/services/AuthService.js'
 import { ref } from 'vue'
-
-//Variables reactivas para el email y la password
 let email = ref('')
 let password = ref('')
 
-const userLogin = async () => {
-  //Creo el servicio de autenticación
-  const auth = new AuthService()
-  //Ejecuto la funcion del login de servicio pasando por parametro el email y la password
-  const succes = await auth.login(email.value, password.value)
-  //Muestro una alerta dependiendo si el login fue exitoso o no
-  succes ? alert('Login exitoso') : alert('Error en el login')
-}
+    const authUser = () => {
+        
+    }
 </script>
 
 <style scoped></style>

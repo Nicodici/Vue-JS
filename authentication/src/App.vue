@@ -12,7 +12,12 @@ import { RouterView } from 'vue-router'
           </li>
           <li class="d-flex">
             <a class="navbar-brand"
-              ><router-link :to="{ name: 'auth' }">Authentication</router-link></a
+              ><router-link :to="{ name: 'auth' }">Backend Auth</router-link></a
+            >
+          </li>
+          <li class="d-flex">
+            <a class="navbar-brand"
+              ><router-link :to="{ name: 'firebase' }">Firebase Auth</router-link></a
             >
           </li>
         </ul>
