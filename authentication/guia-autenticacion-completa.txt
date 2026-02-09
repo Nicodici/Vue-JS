@@ -1,0 +1,912 @@
+================================================================================
+          GUÍA COMPLETA DE AUTENTICACIÓN EN VUE.JS
+          Backend Tradicional vs Firebase Authentication
+================================================================================
+
+================================================================================
+PARTE 1: AUTENTICACIÓN CON BACKEND TRADICIONAL (REST API)
+================================================================================
+
+1. CONCEPTOS BÁSICOS
+--------------------
+- El backend tradicional es un servidor que expone endpoints REST (API)
+- La autenticación se realiza mediante peticiones HTTP (POST, GET, etc.)
+- Se utiliza un token JWT (JSON Web Token) para mantener la sesión
+- El token se guarda en localStorage o en memoria para peticiones posteriores
+
+2. PASOS PARA LA IMPLEMENTACIÓN
+-------------------------------
+
+PASO 1: INSTALAR DEPENDENCIAS
+------------------------------
+No requiere instalación adicional, solo las que trae Vue por defecto.
+Vue ya incluye fetch API para hacer peticiones HTTP.
+
+Opcionalmente, puedes instalar axios:
+    npm install axios
+
+
+PASO 2: CREAR UN SERVICIO DE AUTENTICACIÓN
+------------------------------------------
+Crear archivo: src/services/AuthService.js
+
+import { ref } from 'vue'
+
+class AuthService {
+  constructor() {
+    // Propiedad reactiva para almacenar el token JWT
+    this.jwt = ref('')
+    // Propiedad para almacenar errores
+    this.error = ref('')
+  }
+
+  // Método para obtener el JWT actual
+  getJwt() {
+    return this.jwt.value
+  }
+
+  // Método LOGIN - Autenticar usuario
+  async login(email, password) {
+    try {
+      // Realizar petición POST al endpoint de login
+      const response = await fetch('https://tu-api.com/api/login', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      })
+
+      // Verificar si la respuesta fue exitosa
+      if (!response.ok) {
+        throw new Error('Credenciales inválidas')
+      }
+
+      // Convertir la respuesta a JSON
+      const data = await response.json()
+      
+      // Guardar el token JWT
+      this.jwt.value = data.token
+      
+      // Opcional: Guardar en localStorage para persistencia
+      localStorage.setItem('token', data.token)
+      
+      return true
+      
+    } catch (error) {
+      this.error.value = error.message
+      console.error('Error during login:', error)
+      return false
+    }
+  }
+
+  // Método REGISTER - Registrar nuevo usuario
+  async register(email, password, name) {
+    try {
+      const response = await fetch('https://tu-api.com/api/register', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password, name })
+      })
+
+      if (!response.ok) {
+        throw new Error('Error al registrar usuario')
+      }
+
+      const data = await response.json()
+      this.jwt.value = data.token
+      localStorage.setItem('token', data.token)
+      
+      return true
+      
+    } catch (error) {
+      this.error.value = error.message
+      console.error('Error during registration:', error)
+      return false
+    }
+  }
+
+  // Método LOGOUT - Cerrar sesión
+  logout() {
+    this.jwt.value = ''
+    localStorage.removeItem('token')
+  }
+
+  // Método para verificar si el usuario está autenticado
+  isAuthenticated() {
+    return this.jwt.value !== '' || localStorage.getItem('token') !== null
+  }
+
+  // Método para cargar el token desde localStorage al iniciar la app
+  loadToken() {
+    const token = localStorage.getItem('token')
+    if (token) {
+      this.jwt.value = token
+    }
+  }
+
+  // Método para hacer peticiones autenticadas
+  async authenticatedRequest(url, options = {}) {
+    const token = this.jwt.value || localStorage.getItem('token')
+    
+    const headers = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...options.headers
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      headers
+    })
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Token expirado o inválido
+        this.logout()
+        throw new Error('Sesión expirada')
+      }
+      throw new Error('Error en la petición')
+    }
+
+    return response.json()
+  }
+}
+
+export default new AuthService()
+
+
+PASO 3: CREAR COMPONENTE DE LOGIN
+----------------------------------
+Crear archivo: src/views/LoginView.vue
+
+<template>
+  <div class="login-container">
+    <h2>Iniciar Sesión</h2>
+    <form @submit.prevent="handleLogin">
+      <div class="form-group">
+        <label>Email:</label>
+        <input 
+          type="email" 
+          v-model="email" 
+          required 
+          placeholder="ejemplo@correo.com"
+        />
+      </div>
+      
+      <div class="form-group">
+        <label>Contraseña:</label>
+        <input 
+          type="password" 
+          v-model="password" 
+          required 
+          placeholder="********"
+        />
+      </div>
+      
+      <button type="submit">Iniciar Sesión</button>
+      
+      <div v-if="error" class="error">{{ error }}</div>
+      <div v-if="success" class="success">Login exitoso!</div>
+    </form>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import AuthService from '@/services/AuthService'
+
+const router = useRouter()
+const email = ref('')
+const password = ref('')
+const error = ref('')
+const success = ref(false)
+
+const handleLogin = async () => {
+  error.value = ''
+  success.value = false
+  
+  const result = await AuthService.login(email.value, password.value)
+  
+  if (result) {
+    success.value = true
+    // Redirigir al usuario a la página principal
+    setTimeout(() => {
+      router.push('/home')
+    }, 1000)
+  } else {
+    error.value = 'Credenciales inválidas'
+  }
+}
+</script>
+
+
+PASO 4: PROTEGER RUTAS CON GUARDS
+----------------------------------
+En src/router/index.js:
+
+import { createRouter, createWebHistory } from 'vue-router'
+import AuthService from '@/services/AuthService'
+import LoginView from '@/views/LoginView.vue'
+import HomeView from '@/views/HomeView.vue'
+
+const routes = [
+  {
+    path: '/login',
+    name: 'login',
+    component: LoginView
+  },
+  {
+    path: '/home',
+    name: 'home',
+    component: HomeView,
+    meta: { requiresAuth: true }  // Ruta protegida
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+// Guard global para proteger rutas
+router.beforeEach((to, from, next) => {
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  
+  if (requiresAuth && !AuthService.isAuthenticated()) {
+    // Redirigir al login si no está autenticado
+    next('/login')
+  } else if (to.path === '/login' && AuthService.isAuthenticated()) {
+    // Redirigir al home si ya está autenticado
+    next('/home')
+  } else {
+    next()
+  }
+})
+
+export default router
+
+
+PASO 5: INICIALIZAR EL SERVICIO EN MAIN.JS
+-------------------------------------------
+En src/main.js:
+
+import { createApp } from 'vue'
+import App from './App.vue'
+import router from './router'
+import AuthService from './services/AuthService'
+
+// Cargar el token guardado al iniciar la aplicación
+AuthService.loadToken()
+
+createApp(App)
+  .use(router)
+  .mount('#app')
+
+
+FUNCIONES PRINCIPALES DEL BACKEND TRADICIONAL:
+----------------------------------------------
+
+1. login(email, password)
+   - Envía credenciales al servidor
+   - Recibe y guarda el token JWT
+   - Retorna true/false según el resultado
+
+2. register(email, password, name)
+   - Registra un nuevo usuario en el servidor
+   - Guarda el token JWT recibido
+   - Retorna true/false según el resultado
+
+3. logout()
+   - Elimina el token de memoria y localStorage
+   - Cierra la sesión del usuario
+
+4. isAuthenticated()
+   - Verifica si existe un token válido
+   - Retorna true/false
+
+5. authenticatedRequest(url, options)
+   - Hace peticiones HTTP incluyendo el token JWT
+   - Maneja errores de autenticación automáticamente
+
+6. loadToken()
+   - Carga el token desde localStorage al iniciar la app
+   - Permite persistir la sesión entre recargas
+
+
+================================================================================
+PARTE 2: AUTENTICACIÓN CON FIREBASE
+================================================================================
+
+1. CONCEPTOS BÁSICOS
+--------------------
+- Firebase es una plataforma de Google que ofrece servicios backend
+- Firebase Authentication maneja toda la lógica de autenticación
+- Soporta múltiples proveedores: Email/Password, Google, Facebook, etc.
+- No necesitas crear tu propio backend
+- Firebase maneja automáticamente los tokens y la seguridad
+
+2. PASOS PARA LA IMPLEMENTACIÓN
+-------------------------------
+
+PASO 1: CREAR PROYECTO EN FIREBASE
+-----------------------------------
+1. Ir a https://console.firebase.google.com/
+2. Crear un nuevo proyecto
+3. Activar "Authentication" en el menú lateral
+4. Habilitar el método "Email/Password" en la pestaña "Sign-in method"
+5. Ir a "Project Settings" y obtener la configuración de tu app
+
+
+PASO 2: INSTALAR FIREBASE EN TU PROYECTO
+-----------------------------------------
+npm install firebase
+
+
+PASO 3: CONFIGURAR FIREBASE
+----------------------------
+Crear archivo: src/firebase/config.js
+
+import { initializeApp } from 'firebase/app'
+import { getAuth } from 'firebase/auth'
+
+// Tu configuración de Firebase (obtenida del paso 1)
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "tu-proyecto.firebaseapp.com",
+  projectId: "tu-proyecto-id",
+  storageBucket: "tu-proyecto.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "tu-app-id"
+}
+
+// Inicializar Firebase
+const app = initializeApp(firebaseConfig)
+
+// Inicializar Firebase Authentication
+const auth = getAuth(app)
+
+export { auth }
+
+
+PASO 4: CREAR SERVICIO DE AUTENTICACIÓN FIREBASE
+-------------------------------------------------
+Crear archivo: src/services/FirebaseAuthService.js
+
+import { 
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  updateProfile
+} from 'firebase/auth'
+import { ref } from 'vue'
+
+class FirebaseAuthService {
+  constructor() {
+    this.user = ref(null)
+    this.error = ref('')
+    this.auth = getAuth()
+    
+    // Observar cambios en el estado de autenticación
+    this.initAuthListener()
+  }
+
+  // Escuchar cambios en el estado de autenticación
+  initAuthListener() {
+    onAuthStateChanged(this.auth, (user) => {
+      if (user) {
+        this.user.value = {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL
+        }
+      } else {
+        this.user.value = null
+      }
+    })
+  }
+
+  // Método REGISTER - Registrar nuevo usuario
+  async register(email, password, displayName = '') {
+    try {
+      // Crear usuario con email y contraseña
+      const userCredential = await createUserWithEmailAndPassword(
+        this.auth, 
+        email, 
+        password
+      )
+      
+      // Actualizar el perfil con el nombre
+      if (displayName) {
+        await updateProfile(userCredential.user, {
+          displayName: displayName
+        })
+      }
+      
+      this.user.value = userCredential.user
+      this.error.value = ''
+      return true
+      
+    } catch (error) {
+      this.handleError(error)
+      return false
+    }
+  }
+
+  // Método LOGIN - Iniciar sesión
+  async login(email, password) {
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        this.auth, 
+        email, 
+        password
+      )
+      
+      this.user.value = userCredential.user
+      this.error.value = ''
+      return true
+      
+    } catch (error) {
+      this.handleError(error)
+      return false
+    }
+  }
+
+  // Método LOGOUT - Cerrar sesión
+  async logout() {
+    try {
+      await signOut(this.auth)
+      this.user.value = null
+      this.error.value = ''
+      return true
+      
+    } catch (error) {
+      this.handleError(error)
+      return false
+    }
+  }
+
+  // Verificar si el usuario está autenticado
+  isAuthenticated() {
+    return this.user.value !== null
+  }
+
+  // Obtener el usuario actual
+  getCurrentUser() {
+    return this.user.value
+  }
+
+  // Manejador de errores
+  handleError(error) {
+    console.error('Firebase Auth Error:', error)
+    
+    switch (error.code) {
+      case 'auth/email-already-in-use':
+        this.error.value = 'El email ya está registrado'
+        break
+      case 'auth/invalid-email':
+        this.error.value = 'Email inválido'
+        break
+      case 'auth/weak-password':
+        this.error.value = 'La contraseña es muy débil'
+        break
+      case 'auth/user-not-found':
+        this.error.value = 'Usuario no encontrado'
+        break
+      case 'auth/wrong-password':
+        this.error.value = 'Contraseña incorrecta'
+        break
+      case 'auth/too-many-requests':
+        this.error.value = 'Demasiados intentos. Intenta más tarde'
+        break
+      default:
+        this.error.value = 'Error de autenticación'
+    }
+  }
+}
+
+export default new FirebaseAuthService()
+
+
+PASO 5: CREAR COMPONENTE DE LOGIN CON FIREBASE
+----------------------------------------------
+Crear archivo: src/views/FirebaseLoginView.vue
+
+<template>
+  <div class="firebase-login-container">
+    <h2>Iniciar Sesión con Firebase</h2>
+    
+    <form @submit.prevent="handleLogin">
+      <div class="form-group">
+        <label>Email:</label>
+        <input 
+          type="email" 
+          v-model="email" 
+          required 
+          placeholder="ejemplo@correo.com"
+        />
+      </div>
+      
+      <div class="form-group">
+        <label>Contraseña:</label>
+        <input 
+          type="password" 
+          v-model="password" 
+          required 
+          placeholder="********"
+        />
+      </div>
+      
+      <button type="submit">Iniciar Sesión</button>
+      
+      <div v-if="authService.error.value" class="error">
+        {{ authService.error.value }}
+      </div>
+      
+      <div v-if="success" class="success">
+        Login exitoso!
+      </div>
+    </form>
+    
+    <p>¿No tienes cuenta? <router-link to="/register">Regístrate</router-link></p>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import FirebaseAuthService from '@/services/FirebaseAuthService'
+
+const router = useRouter()
+const authService = FirebaseAuthService
+
+const email = ref('')
+const password = ref('')
+const success = ref(false)
+
+const handleLogin = async () => {
+  success.value = false
+  
+  const result = await authService.login(email.value, password.value)
+  
+  if (result) {
+    success.value = true
+    setTimeout(() => {
+      router.push('/home')
+    }, 1000)
+  }
+}
+</script>
+
+
+PASO 6: CREAR COMPONENTE DE REGISTRO CON FIREBASE
+-------------------------------------------------
+Crear archivo: src/views/FirebaseRegisterView.vue
+
+<template>
+  <div class="firebase-register-container">
+    <h2>Registrarse</h2>
+    
+    <form @submit.prevent="handleRegister">
+      <div class="form-group">
+        <label>Nombre:</label>
+        <input 
+          type="text" 
+          v-model="displayName" 
+          required 
+          placeholder="Tu nombre"
+        />
+      </div>
+      
+      <div class="form-group">
+        <label>Email:</label>
+        <input 
+          type="email" 
+          v-model="email" 
+          required 
+          placeholder="ejemplo@correo.com"
+        />
+      </div>
+      
+      <div class="form-group">
+        <label>Contraseña:</label>
+        <input 
+          type="password" 
+          v-model="password" 
+          required 
+          placeholder="Mínimo 6 caracteres"
+        />
+      </div>
+      
+      <button type="submit">Registrarse</button>
+      
+      <div v-if="authService.error.value" class="error">
+        {{ authService.error.value }}
+      </div>
+      
+      <div v-if="success" class="success">
+        Registro exitoso!
+      </div>
+    </form>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import FirebaseAuthService from '@/services/FirebaseAuthService'
+
+const router = useRouter()
+const authService = FirebaseAuthService
+
+const displayName = ref('')
+const email = ref('')
+const password = ref('')
+const success = ref(false)
+
+const handleRegister = async () => {
+  success.value = false
+  
+  const result = await authService.register(
+    email.value, 
+    password.value, 
+    displayName.value
+  )
+  
+  if (result) {
+    success.value = true
+    setTimeout(() => {
+      router.push('/home')
+    }, 1000)
+  }
+}
+</script>
+
+
+PASO 7: PROTEGER RUTAS CON FIREBASE
+------------------------------------
+En src/router/index.js:
+
+import { createRouter, createWebHistory } from 'vue-router'
+import FirebaseAuthService from '@/services/FirebaseAuthService'
+import FirebaseLoginView from '@/views/FirebaseLoginView.vue'
+import FirebaseRegisterView from '@/views/FirebaseRegisterView.vue'
+import HomeView from '@/views/HomeView.vue'
+
+const routes = [
+  {
+    path: '/login',
+    name: 'login',
+    component: FirebaseLoginView
+  },
+  {
+    path: '/register',
+    name: 'register',
+    component: FirebaseRegisterView
+  },
+  {
+    path: '/home',
+    name: 'home',
+    component: HomeView,
+    meta: { requiresAuth: true }
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+// Guard global para Firebase
+router.beforeEach((to, from, next) => {
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const isAuthenticated = FirebaseAuthService.isAuthenticated()
+  
+  if (requiresAuth && !isAuthenticated) {
+    next('/login')
+  } else if ((to.path === '/login' || to.path === '/register') && isAuthenticated) {
+    next('/home')
+  } else {
+    next()
+  }
+})
+
+export default router
+
+
+FUNCIONES PRINCIPALES DE FIREBASE:
+-----------------------------------
+
+1. createUserWithEmailAndPassword(auth, email, password)
+   - Crea un nuevo usuario en Firebase
+   - Automáticamente inicia sesión después del registro
+   - Retorna un objeto UserCredential con la información del usuario
+
+2. signInWithEmailAndPassword(auth, email, password)
+   - Inicia sesión con email y contraseña
+   - Retorna un objeto UserCredential con la información del usuario
+   - Firebase gestiona automáticamente el token
+
+3. signOut(auth)
+   - Cierra la sesión del usuario actual
+   - Limpia automáticamente todos los tokens
+
+4. onAuthStateChanged(auth, callback)
+   - Escucha cambios en el estado de autenticación
+   - Se ejecuta automáticamente cuando el usuario inicia o cierra sesión
+   - Muy útil para mantener sincronizado el estado de la aplicación
+
+5. updateProfile(user, { displayName, photoURL })
+   - Actualiza el perfil del usuario
+   - Permite agregar nombre y foto de perfil
+
+6. sendPasswordResetEmail(auth, email)
+   - Envía un email para resetear la contraseña
+   - Firebase gestiona automáticamente el proceso
+
+7. updatePassword(user, newPassword)
+   - Actualiza la contraseña del usuario actual
+
+
+================================================================================
+COMPARACIÓN: BACKEND TRADICIONAL VS FIREBASE
+================================================================================
+
+BACKEND TRADICIONAL:
+--------------------
+VENTAJAS:
+✓ Control total sobre la lógica del servidor
+✓ Puedes personalizar completamente el proceso de autenticación
+✓ Ideal si ya tienes un backend existente
+✓ No dependes de servicios externos
+
+DESVENTAJAS:
+✗ Requiere crear y mantener tu propio servidor
+✗ Debes implementar toda la seguridad manualmente
+✗ Necesitas gestionar tokens JWT manualmente
+✗ Más complejo de configurar
+
+
+FIREBASE:
+---------
+VENTAJAS:
+✓ No necesitas crear un backend
+✓ Seguridad gestionada por Google
+✓ Configuración rápida y sencilla
+✓ Tokens gestionados automáticamente
+✓ Incluye métodos de autenticación social (Google, Facebook, etc.)
+✓ Escalabilidad automática
+✓ Incluye funcionalidades avanzadas (reset password, verificación de email)
+
+DESVENTAJAS:
+✗ Menos control sobre el proceso
+✗ Dependes de un servicio externo
+✗ Puede tener costos en aplicaciones muy grandes
+✗ Requiere conexión a internet
+
+
+================================================================================
+FLUJO DE AUTENTICACIÓN COMPLETO
+================================================================================
+
+BACKEND TRADICIONAL:
+--------------------
+1. Usuario ingresa credenciales (email/password)
+2. Frontend envía POST a /api/login con las credenciales
+3. Backend valida las credenciales en la base de datos
+4. Backend genera un token JWT y lo retorna
+5. Frontend guarda el token en localStorage
+6. Para peticiones posteriores, se incluye el token en el header:
+   Authorization: Bearer TOKEN
+7. Backend valida el token en cada petición protegida
+
+
+FIREBASE:
+---------
+1. Usuario ingresa credenciales (email/password)
+2. Frontend llama a signInWithEmailAndPassword()
+3. Firebase valida las credenciales automáticamente
+4. Firebase genera y gestiona el token automáticamente
+5. onAuthStateChanged se ejecuta y actualiza el estado de la app
+6. Firebase incluye automáticamente el token en todas las peticiones
+7. No necesitas gestionar tokens manualmente
+
+
+================================================================================
+MEJORES PRÁCTICAS
+================================================================================
+
+1. SEGURIDAD:
+   - Nunca guardes contraseñas en texto plano
+   - Usa HTTPS siempre
+   - Valida datos tanto en frontend como backend
+   - Implementa rate limiting para evitar ataques de fuerza bruta
+
+2. TOKENS:
+   - Los tokens JWT deben tener tiempo de expiración
+   - Implementa refresh tokens para sesiones largas
+   - Guarda tokens de forma segura (no en cookies sin httpOnly)
+
+3. EXPERIENCIA DE USUARIO:
+   - Muestra mensajes de error claros
+   - Implementa loading states durante las peticiones
+   - Redirige automáticamente después del login exitoso
+   - Implementa "remember me" con localStorage
+
+4. FIREBASE ESPECÍFICO:
+   - Configura las reglas de seguridad en Firebase Console
+   - Habilita solo los métodos de autenticación que necesitas
+   - Implementa verificación de email para mayor seguridad
+   - Usa Firebase Hosting para mejor integración
+
+
+================================================================================
+EJEMPLO DE USO EN UN COMPONENTE
+================================================================================
+
+Backend Tradicional:
+--------------------
+<script setup>
+import AuthService from '@/services/AuthService'
+import { ref } from 'vue'
+
+const email = ref('')
+const password = ref('')
+
+// Login
+const login = async () => {
+  const success = await AuthService.login(email.value, password.value)
+  if (success) {
+    console.log('Login exitoso')
+    console.log('Token:', AuthService.getJwt())
+  }
+}
+
+// Hacer petición autenticada
+const getUserData = async () => {
+  const data = await AuthService.authenticatedRequest('/api/user/profile')
+  console.log(data)
+}
+</script>
+
+
+Firebase:
+---------
+<script setup>
+import FirebaseAuthService from '@/services/FirebaseAuthService'
+import { ref, computed } from 'vue'
+
+const email = ref('')
+const password = ref('')
+
+// Login
+const login = async () => {
+  const success = await FirebaseAuthService.login(email.value, password.value)
+  if (success) {
+    console.log('Login exitoso')
+    console.log('Usuario:', FirebaseAuthService.getCurrentUser())
+  }
+}
+
+// Acceder al usuario actual
+const currentUser = computed(() => FirebaseAuthService.user.value)
+</script>
+
+
+================================================================================
+FIN DE LA GUÍA
+================================================================================
+
+Para más información:
+- Backend tradicional con JWT: https://jwt.io/
+- Firebase Authentication: https://firebase.google.com/docs/auth
+- Vue Router Guards: https://router.vuejs.org/guide/advanced/navigation-guards.html

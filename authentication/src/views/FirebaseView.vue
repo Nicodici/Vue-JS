@@ -36,17 +36,39 @@
       <!-- <p>Email: {{ email }}</p>
       <p>Password: {{ password }}</p> -->
     </div>
+    <div v-if="loginOk" class="logged">El usuario se loguió correctamente</div>
+    <div v-if="loginOk == false" class="notLogged">Credenciales invalidas</div>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+
+//Importamos las funciones necesarias de Firebase para la autenticación
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth'
 let email = ref('')
 let password = ref('')
-
-    const authUser = () => {
-        
-    }
+let loginOk = ref(null)
+//Creamos una funcion para autenticar al usuario con Firebase, utilizando las variables reactivas email y password que se actualizan con el v-model de los inputs del formulario. Esta función se ejecutará al hacer click en el botón de enviar, y evitará el comportamiento por defecto del formulario con @click.prevent.
+const authUser = () => {
+  const auth = getAuth()
+  signInWithEmailAndPassword(auth, email.value, password.value)
+    .then(() => {
+      console.log('Usuario autenticado correctamente')
+      loginOk.value = true
+    })
+    .catch((error) => {
+      console.log('Error al autenticar al usuario:', error)
+      loginOk.value = false
+    })
+}
 </script>
 
-<style scoped></style>
+<style scoped>
+.notLogged {
+  color: red;
+}
+.logged {
+  color: green;
+}
+</style>

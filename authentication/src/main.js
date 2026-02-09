@@ -19,7 +19,7 @@ const firebaseConfig = {
 };
 
 //Inicializamos Firebase con el objeto de configuración
-const appFirebase = initializeApp(firebaseConfig);
+initializeApp(firebaseConfig);
 
 const app = createApp(App)
 

@@ -1,0 +1,344 @@
+================================================================================
+                          GUÍA COMPLETA DE QUASAR FRAMEWORK
+================================================================================
+
+¿QUÉ ES QUASAR?
+---------------
+Quasar es un framework Vue.js de código abierto que permite desarrollar 
+aplicaciones multiplataforma con una única base de código. Con Quasar puedes 
+crear:
+- SPAs (Single Page Applications)
+- SSR (Server Side Rendered Apps)
+- PWAs (Progressive Web Apps)
+- BEX (Browser Extensions)
+- Aplicaciones móviles (Android/iOS) vía Cordova o Capacitor
+- Aplicaciones de escritorio (Windows/MacOS/Linux) vía Electron
+
+El framework se basa en Vue 3 y proporciona una biblioteca completa de 
+componentes UI siguiendo Material Design y iOS guidelines.
+
+
+VENTAJAS DE QUASAR
+------------------
+✓ MULTIPLATAFORMA: Escribe el código una vez y despliega en múltiples 
+  plataformas (web, móvil, escritorio).
+
+✓ BIBLIOTECA COMPLETA DE COMPONENTES: Más de 70 componentes listos para usar
+  con diseño responsive y accesibilidad incorporada.
+
+✓ RENDIMIENTO OPTIMIZADO: Tree-shaking automático incluye solo el código que 
+  realmente usas, resultando en bundles pequeños.
+
+✓ DISEÑO RESPONSIVE: Los componentes se adaptan automáticamente a diferentes
+  tamaños de pantalla y dispositivos.
+
+✓ TEMAS PERSONALIZABLES: Fácil personalización de colores, tipografía y estilos
+  mediante variables SASS.
+
+✓ CONFIGURACIÓN MÍNIMA: No necesitas configurar Webpack, Babel, o herramientas
+  de build. Quasar CLI lo maneja todo.
+
+✓ DOCUMENTACIÓN EXCELENTE: Documentación completa con ejemplos interactivos
+  en https://quasar.dev
+
+✓ MODO RTL: Soporte nativo para idiomas de derecha a izquierda.
+
+✓ INTERNACIONALIZACIÓN: Sistema de i18n integrado para aplicaciones multiidioma.
+
+✓ ECOSYSTEM RICO: Plugins, directivas, y utilidades adicionales incluidas.
+
+
+PUNTOS A TENER EN CUENTA
+-------------------------
+• CURVA DE APRENDIZAJE: Aunque Vue es accesible, Quasar añade conceptos 
+  adicionales (layouts, páginas, boot files) que requieren tiempo de 
+  aprendizaje.
+
+• TAMAÑO DEL FRAMEWORK: A pesar del tree-shaking, el bundle base de Quasar es
+  más grande que Vue solo, especialmente si usas muchos componentes.
+
+• DEPENDENCIA DEL FRAMEWORK: Estás fuertemente acoplado al ecosistema Quasar.
+  Migrar a otro framework requeriría reescribir los componentes UI.
+
+• ACTUALIZACIONES: Debes estar atento a las actualizaciones tanto de Vue como
+  de Quasar y posibles breaking changes.
+
+• COMUNIDAD: Aunque activa, la comunidad de Quasar es más pequeña que la de
+  frameworks como React o Vue solo.
+
+• PERSONALIZACIÓN PROFUNDA: Para personalizaciones muy específicas más allá de
+  los temas, puede requerir conocimientos avanzados de SASS/CSS.
+
+• MOBILE BUILDS: Compilar para móvil (Cordova/Capacitor) requiere configurar
+  SDKs nativos (Android Studio, Xcode).
+
+
+CÓMO CREAR UN PROYECTO QUASAR
+------------------------------
+
+OPCIÓN 1: Usando Quasar CLI (Recomendado)
+------------------------------------------
+1. Instalar Quasar CLI globalmente:
+   npm install -g @quasar/cli
+   
+2. Crear un nuevo proyecto:
+   npm init quasar
+   
+3. Durante la configuración, se te preguntará:
+   - Nombre del proyecto
+   - Descripción del proyecto
+   - Autor
+   - Escoger tipo de CSS: Sass with indented syntax / SCSS / CSS
+   - Escoger características adicionales (ESLint, TypeScript, etc.)
+   - Escoger modo Quasar (SPA, SSR, PWA, Cordova, Capacitor, Electron, BEX)
+
+4. Navegar al directorio del proyecto:
+   cd nombre-del-proyecto
+   
+5. Instalar dependencias:
+   npm install
+   
+6. Ejecutar en modo desarrollo:
+   npm run dev
+   o
+   quasar dev
+
+
+OPCIÓN 2: Usando Vite con Quasar Plugin
+----------------------------------------
+1. Crear proyecto Vue con Vite:
+   npm create vite@latest mi-proyecto -- --template vue
+   
+2. Navegar al proyecto:
+   cd mi-proyecto
+   
+3. Instalar Quasar:
+   npm install quasar @quasar/extras
+   npm install -D @quasar/vite-plugin sass
+   
+4. Configurar vite.config.js para incluir el plugin de Quasar (ver docs)
+   
+5. Importar Quasar en main.js
+
+
+ESTRUCTURA DEL PROYECTO QUASAR
+-------------------------------
+mi-proyecto/
+├── public/              # Archivos estáticos
+├── src/
+│   ├── assets/         # Recursos (imágenes, fuentes, etc)
+│   ├── boot/           # Archivos de inicialización (boot files)
+│   ├── components/     # Componentes Vue reutilizables
+│   ├── css/
+│   │   ├── app.scss    # Estilos globales
+│   │   └── quasar.variables.scss  # Variables personalizadas de Quasar
+│   ├── layouts/        # Layouts de la aplicación
+│   │   └── MainLayout.vue
+│   ├── pages/          # Componentes de página
+│   ├── router/         # Configuración de Vue Router
+│   │   └── index.js
+│   ├── stores/         # Pinia stores (si se usa Pinia)
+│   ├── App.vue         # Componente raíz
+│   └── main.js         # Punto de entrada
+├── index.html
+├── package.json
+├── quasar.config.js    # Configuración principal de Quasar
+└── README.md
+
+
+CONCEPTOS CLAVE DE QUASAR
+--------------------------
+
+1. BOOT FILES (src/boot/)
+   Archivos que se ejecutan antes de instanciar la app Vue. Útiles para:
+   - Configurar plugins
+   - Inicializar librerías
+   - Configurar axios, i18n, etc.
+
+2. LAYOUTS (src/layouts/)
+   Plantillas que envuelven las páginas y definen estructura común:
+   - Header
+   - Sidebar
+   - Footer
+   - Drawer
+   Ejemplo: MainLayout.vue con QLayout, QHeader, QDrawer, QPageContainer
+
+3. PAGES (src/pages/)
+   Componentes que representan rutas específicas de la aplicación.
+   Se renderizan dentro de los layouts.
+
+4. QUASAR.CONFIG.JS
+   Archivo de configuración central que controla:
+   - Build options
+   - Dev server
+   - Framework features
+   - Plugins de Quasar
+   - Variables CSS
+   - Modos (SPA, PWA, SSR, etc.)
+
+5. COMPONENTES QUASAR
+   Se importan con prefijo 'Q':
+   - QBtn (botones)
+   - QInput (inputs)
+   - QCard (tarjetas)
+   - QTable (tablas)
+   - QDialog (modales)
+   - QToolbar (barras de herramientas)
+   - Y muchos más...
+
+
+EJEMPLO BÁSICO DE USO
+----------------------
+<template>
+  <q-page class="flex flex-center">
+    <q-card class="q-pa-md" style="width: 400px">
+      <q-card-section>
+        <div class="text-h6">Mi Formulario</div>
+      </q-card-section>
+      
+      <q-card-section>
+        <q-input 
+          v-model="nombre" 
+          label="Nombre"
+          outlined
+        />
+        
+        <q-input 
+          v-model="email" 
+          label="Email"
+          type="email"
+          outlined
+          class="q-mt-md"
+        />
+      </q-card-section>
+      
+      <q-card-actions align="right">
+        <q-btn 
+          label="Enviar" 
+          color="primary"
+          @click="enviarFormulario"
+        />
+      </q-card-actions>
+    </q-card>
+  </q-page>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
+const nombre = ref('')
+const email = ref('')
+
+const enviarFormulario = () => {
+  $q.notify({
+    color: 'green-4',
+    textColor: 'white',
+    icon: 'cloud_done',
+    message: 'Formulario enviado'
+  })
+}
+</script>
+
+
+COMANDOS ÚTILES
+---------------
+# Desarrollo
+quasar dev              # Modo SPA
+quasar dev -m pwa       # Modo PWA
+quasar dev -m ssr       # Modo SSR
+quasar dev -m electron  # Modo Electron
+
+# Build
+quasar build            # Build para producción
+quasar build -m pwa     # Build PWA
+quasar build -m ssr     # Build SSR
+
+# Añadir modos
+quasar mode add pwa
+quasar mode add ssr
+quasar mode add electron
+quasar mode add capacitor
+quasar mode add cordova
+
+# Información del proyecto
+quasar info
+
+# Actualizar Quasar
+npm update @quasar/app-vite
+
+
+PLUGINS QUASAR ÚTILES
+---------------------
+- Notify: Notificaciones toast
+- Dialog: Diálogos y confirmaciones
+- Loading: Indicadores de carga
+- LoadingBar: Barra de progreso en la parte superior
+- LocalStorage: Wrapper localStorage
+- SessionStorage: Wrapper sessionStorage
+- Cookies: Gestión de cookies
+- BottomSheet: Panel inferior (mobile)
+- Meta: Meta tags dinámicos
+
+
+UTILIDADES QUASAR
+-----------------
+- Platform: Detectar plataforma/navegador
+- Screen: Información responsive (breakpoints)
+- Dark: Modo oscuro
+- Scroll: Utilidades de scroll
+- Colors: Manipulación de colores
+- Date: Manipulación de fechas
+- Format: Formateo de números/bytes
+
+
+CONFIGURACIÓN DE TEMAS
+-----------------------
+En src/css/quasar.variables.scss puedes personalizar:
+
+$primary   : #1976D2;
+$secondary : #26A69A;
+$accent    : #9C27B0;
+$positive  : #21BA45;
+$negative  : #C10015;
+$info      : #31CCEC;
+$warning   : #F2C037;
+
+
+RECURSOS ADICIONALES
+--------------------
+- Documentación oficial: https://quasar.dev
+- GitHub: https://github.com/quasarframework/quasar
+- Forum: https://forum.quasar.dev
+- Discord: https://chat.quasar.dev
+- Twitter: @quasarframework
+- Awesome Quasar: https://github.com/quasarframework/quasar-awesome
+
+
+MEJORES PRÁCTICAS
+-----------------
+1. Usa Composition API con <script setup> para código más limpio
+2. Aprovecha los helpers de Quasar ($q) para funcionalidades comunes
+3. Utiliza las clases de Flexbox de Quasar para layouts
+4. Implementa lazy loading de rutas para mejor rendimiento
+5. Usa boot files para configuraciones globales
+6. Mantén los componentes pequeños y reutilizables
+7. Aprovecha el sistema de grid responsive de Quasar (col, row)
+8. Usa QSeparator para divisiones visuales limpias
+9. Implementa manejo de errores con try-catch y notificaciones
+10. Testea en múltiples dispositivos si planeas desplegar en móvil
+
+
+CONCLUSIÓN
+----------
+Quasar es una excelente opción cuando necesitas desarrollar aplicaciones
+multiplataforma de manera rápida y eficiente. Su biblioteca completa de
+componentes, excelente documentación y capacidad de construir para múltiples
+plataformas desde un único código base lo hacen ideal para proyectos que
+requieren presencia en web, móvil y escritorio.
+
+La inversión inicial en aprender Quasar se compensa rápidamente con la
+productividad ganada y la calidad de las aplicaciones resultantes.
+
+================================================================================
