@@ -1,0 +1,11 @@
+Requerimientos
+
+Views:
+Pantalla de bienvenida.
+Pantalla de login (Formulario de login con email y password).
+Pantalla de posts (protegida, solo accesible si el usuario esta logueado)
+
+Puntos a tener en cuenta:
+Usar Vue Router para la navegacion entre las vistas.
+Usar Pinia para el manejo del estado de autenticacion del usuario.
+Usar guards en Vue Router para proteger la ruta de posts, redirigiendo al login si el usuario no esta autenticado.

@@ -5,7 +5,6 @@
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
         <q-separator vertical color="grey-5" spaced />
         <q-toolbar-title> <router-link to="/">Quasar App </router-link> </q-toolbar-title>
-        
 
         <q-separator vertical color="grey-5" spaced />
         <div>Quasar v{{ $q.version }}</div>
@@ -20,7 +19,7 @@
       </q-list>
     </q-drawer>
 
-    <q-page-container>
+    <q-page-container style="min-height: 100vh; display: flex; justify-content: center; align-items: center; flex-direction: column;">
       <router-view />
     </q-page-container>
   </q-layout>
@@ -66,4 +65,5 @@ function toggleLeftDrawer() {
   text-decoration: none;
   color: inherit;
 }
+
 </style>

@@ -1,0 +1,1436 @@
+═══════════════════════════════════════════════════════════════════════════════
+                        SESIONES EN VUE.JS - GUÍA COMPLETA
+═══════════════════════════════════════════════════════════════════════════════
+
+1. ¿QUÉ SON LAS SESIONES?
+═══════════════════════════════════════════════════════════════════════════════
+
+Una sesión es un mecanismo para mantener el estado de un usuario durante su 
+interacción con una aplicación web. Permite recordar información del usuario 
+entre diferentes peticiones HTTP.
+
+CARACTERÍSTICAS:
+- Mantienen el estado del usuario durante su visita
+- Pueden ser del lado del servidor o del cliente
+- Tienen un identificador único (Session ID)
+- Generalmente expiran después de un tiempo de inactividad
+- Más seguras que solo cookies cuando se gestionan en el servidor
+
+DIFERENCIAS CLAVE:
+┌─────────────────┬────────────────────────┬──────────────────────┐
+│                 │ SESIONES SERVIDOR      │ SESIONES CLIENTE     │
+├─────────────────┼────────────────────────┼──────────────────────┤
+│ Almacenamiento  │ Servidor (Redis, DB)   │ Navegador            │
+│ Seguridad       │ Alta                   │ Media-Baja           │
+│ Capacidad       │ Ilimitada              │ ~5-10MB              │
+│ Acceso          │ Solo servidor          │ Solo cliente         │
+│ Persistencia    │ Hasta cerrar sesión    │ Hasta cerrar pestaña │
+└─────────────────┴────────────────────────┴──────────────────────┘
+
+
+2. TIPOS DE GESTIÓN DE SESIONES
+═══════════════════════════════════════════════════════════════════════════════
+
+2.1 SESIONES BASADAS EN SERVIDOR (Stateful)
+------------------------------
+El servidor mantiene el estado de la sesión en memoria, base de datos o Redis.
+
+FLUJO:
+1. Usuario inicia sesión
+2. Servidor crea sesión con ID único
+3. ID se envía al cliente (generalmente en cookie)
+4. Cliente envía ID en cada petición
+5. Servidor valida ID y recupera datos de sesión
+
+VENTAJAS:
+✓ Más seguro
+✓ Control total desde el servidor
+✓ Fácil invalidar sesiones
+✓ No expone datos sensibles al cliente
+
+DESVENTAJAS:
+✗ Requiere almacenamiento en servidor
+✗ Problemas con escalado horizontal
+✗ Requiere configuración adicional
+
+
+2.2 SESIONES BASADAS EN TOKEN (Stateless)
+------------------------------
+El estado se almacena en un token (generalmente JWT) que el cliente guarda.
+
+FLUJO:
+1. Usuario inicia sesión
+2. Servidor genera token JWT con datos del usuario
+3. Cliente guarda token (localStorage, sessionStorage, o cookie)
+4. Cliente envía token en cada petición (header Authorization)
+5. Servidor valida token y extrae información
+
+VENTAJAS:
+✓ Sin estado en servidor (stateless)
+✓ Escalable
+✓ Funciona bien con APIs REST
+✓ Soporte nativo para autenticación cross-domain
+
+DESVENTAJAS:
+✗ Token puede ser robado si no se protege
+✗ Difícil invalidar tokens
+✗ Requiere refresh tokens para seguridad
+
+
+2.3 SESSIONSTORAGE (Cliente puro)
+------------------------------
+Almacenamiento temporal en el navegador que dura hasta cerrar la pestaña.
+
+CARACTERÍSTICAS:
+- Solo accesible en el cliente
+- Se borra al cerrar la pestaña
+- No se envía automáticamente al servidor
+- Aislado por origen (domain + protocol + port)
+- Capacidad: ~5-10MB
+
+
+3. SESSIONSTORAGE API NATIVA
+═══════════════════════════════════════════════════════════════════════════════
+
+GUARDAR DATOS:
+sessionStorage.setItem('usuario', 'Juan')
+sessionStorage.setItem('rol', 'admin')
+
+// Objetos (convertir a JSON)
+const userData = { nombre: 'Juan', edad: 30 }
+sessionStorage.setItem('userData', JSON.stringify(userData))
+
+LEER DATOS:
+const usuario = sessionStorage.getItem('usuario')
+const userData = JSON.parse(sessionStorage.getItem('userData'))
+
+ELIMINAR:
+sessionStorage.removeItem('usuario')       // Eliminar un item
+sessionStorage.clear()                     // Eliminar todo
+
+VERIFICAR EXISTENCIA:
+if (sessionStorage.getItem('usuario')) {
+  // Existe
+}
+
+OBTENER NÚMERO DE ITEMS:
+const cantidad = sessionStorage.length
+
+ITERAR:
+for (let i = 0; i < sessionStorage.length; i++) {
+  const key = sessionStorage.key(i)
+  const value = sessionStorage.getItem(key)
+  console.log(key, value)
+}
+
+
+4. COMPOSABLE PARA SESSIONSTORAGE EN VUE 3
+═══════════════════════════════════════════════════════════════════════════════
+
+// composables/useSessionStorage.js
+import { ref, watch } from 'vue'
+
+export function useSessionStorage(key, defaultValue = null) {
+  // Leer valor inicial de sessionStorage
+  const storedValue = sessionStorage.getItem(key)
+  const data = ref(
+    storedValue ? JSON.parse(storedValue) : defaultValue
+  )
+
+  // Guardar en sessionStorage cuando cambie
+  watch(data, (newValue) => {
+    if (newValue === null || newValue === undefined) {
+      sessionStorage.removeItem(key)
+    } else {
+      sessionStorage.setItem(key, JSON.stringify(newValue))
+    }
+  }, { deep: true })
+
+  // Función para resetear
+  const reset = () => {
+    data.value = defaultValue
+  }
+
+  // Función para eliminar
+  const remove = () => {
+    data.value = null
+  }
+
+  return {
+    data,
+    reset,
+    remove
+  }
+}
+
+USO EN COMPONENTE:
+
+<script setup>
+import { useSessionStorage } from '@/composables/useSessionStorage'
+
+// Usar como reactive
+const { data: usuario } = useSessionStorage('usuario', { nombre: '', rol: '' })
+
+// Modificar (se guarda automáticamente)
+usuario.value = { nombre: 'Juan', rol: 'admin' }
+
+// Leer
+console.log(usuario.value.nombre)
+</script>
+
+
+5. SERVICIO DE SESIÓN CLIENT-SIDE
+═══════════════════════════════════════════════════════════════════════════════
+
+// services/SessionService.js
+class SessionService {
+  // Prefijo para evitar colisiones
+  prefix = 'app_'
+
+  // Guardar dato en sesión
+  set(key, value) {
+    try {
+      const serializedValue = JSON.stringify(value)
+      sessionStorage.setItem(this.prefix + key, serializedValue)
+      return true
+    } catch (error) {
+      console.error('Error al guardar en sessionStorage:', error)
+      return false
+    }
+  }
+
+  // Obtener dato de sesión
+  get(key, defaultValue = null) {
+    try {
+      const item = sessionStorage.getItem(this.prefix + key)
+      return item ? JSON.parse(item) : defaultValue
+    } catch (error) {
+      console.error('Error al leer de sessionStorage:', error)
+      return defaultValue
+    }
+  }
+
+  // Eliminar dato específico
+  remove(key) {
+    sessionStorage.removeItem(this.prefix + key)
+  }
+
+  // Verificar si existe
+  has(key) {
+    return sessionStorage.getItem(this.prefix + key) !== null
+  }
+
+  // Limpiar toda la sesión de la app
+  clear() {
+    const keys = Object.keys(sessionStorage)
+    keys.forEach(key => {
+      if (key.startsWith(this.prefix)) {
+        sessionStorage.removeItem(key)
+      }
+    })
+  }
+
+  // Obtener todas las claves de la app
+  getAllKeys() {
+    const keys = Object.keys(sessionStorage)
+    return keys
+      .filter(key => key.startsWith(this.prefix))
+      .map(key => key.replace(this.prefix, ''))
+  }
+
+  // Guardar múltiples valores
+  setMultiple(data) {
+    Object.entries(data).forEach(([key, value]) => {
+      this.set(key, value)
+    })
+  }
+
+  // Obtener múltiples valores
+  getMultiple(keys) {
+    return keys.reduce((acc, key) => {
+      acc[key] = this.get(key)
+      return acc
+    }, {})
+  }
+
+  // Datos de usuario
+  setUser(userData) {
+    this.set('user', userData)
+  }
+
+  getUser() {
+    return this.get('user')
+  }
+
+  removeUser() {
+    this.remove('user')
+  }
+
+  // Token de sesión
+  setSessionToken(token) {
+    this.set('session_token', token)
+  }
+
+  getSessionToken() {
+    return this.get('session_token')
+  }
+
+  removeSessionToken() {
+    this.remove('session_token')
+  }
+
+  // Estado de autenticación
+  isAuthenticated() {
+    return this.has('session_token') && this.has('user')
+  }
+}
+
+export default new SessionService()
+
+
+USO DEL SERVICIO:
+
+import SessionService from '@/services/SessionService'
+
+// Guardar sesión de usuario
+SessionService.setUser({
+  id: 1,
+  nombre: 'Juan',
+  email: 'juan@example.com',
+  rol: 'admin'
+})
+
+SessionService.setSessionToken('abc123xyz')
+
+// Verificar autenticación
+if (SessionService.isAuthenticated()) {
+  const user = SessionService.getUser()
+  console.log(`Bienvenido ${user.nombre}`)
+}
+
+// Cerrar sesión
+SessionService.clear()
+
+
+6. GESTIÓN DE SESIONES CON TOKENS JWT
+═══════════════════════════════════════════════════════════════════════════════
+
+6.1 ¿QUÉ ES JWT?
+------------------------------
+JSON Web Token es un estándar abierto (RFC 7519) para transmitir información
+de forma segura entre partes como un objeto JSON.
+
+ESTRUCTURA:
+header.payload.signature
+
+Ejemplo:
+eyJhbGci0iJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+
+PARTES:
+1. Header: Tipo de token y algoritmo
+2. Payload: Datos del usuario (claims)
+3. Signature: Firma criptográfica
+
+
+6.2 LIBRERÍA PARA JWT
+------------------------------
+
+INSTALACIÓN:
+npm install jwt-decode
+
+USO:
+import { jwtDecode } from 'jwt-decode'
+
+const token = 'eyJhbGci0iJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+const decoded = jwtDecode(token)
+
+console.log(decoded)
+// { sub: "1234567890", name: "John Doe", iat: 1516239022, exp: 1516242622 }
+
+
+6.3 SERVICIO DE AUTENTICACIÓN CON JWT
+------------------------------
+
+// services/AuthService.js
+import { jwtDecode } from 'jwt-decode'
+import axios from 'axios'
+
+class AuthService {
+  TOKEN_KEY = 'auth_token'
+  REFRESH_TOKEN_KEY = 'refresh_token'
+  USER_KEY = 'user_data'
+
+  // Login
+  async login(email, password) {
+    try {
+      const response = await axios.post('/api/auth/login', {
+        email,
+        password
+      })
+
+      const { token, refreshToken, user } = response.data
+
+      // Guardar en sessionStorage
+      sessionStorage.setItem(this.TOKEN_KEY, token)
+      sessionStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken)
+      sessionStorage.setItem(this.USER_KEY, JSON.stringify(user))
+
+      // Configurar header por defecto
+      this.setAuthHeader(token)
+
+      return { success: true, user }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  }
+
+  // Logout
+  logout() {
+    sessionStorage.removeItem(this.TOKEN_KEY)
+    sessionStorage.removeItem(this.REFRESH_TOKEN_KEY)
+    sessionStorage.removeItem(this.USER_KEY)
+    delete axios.defaults.headers.common['Authorization']
+  }
+
+  // Obtener token
+  getToken() {
+    return sessionStorage.getItem(this.TOKEN_KEY)
+  }
+
+  // Obtener refresh token
+  getRefreshToken() {
+    return sessionStorage.getItem(this.REFRESH_TOKEN_KEY)
+  }
+
+  // Obtener usuario
+  getUser() {
+    const userData = sessionStorage.getItem(this.USER_KEY)
+    return userData ? JSON.parse(userData) : null
+  }
+
+  // Verificar si está autenticado
+  isAuthenticated() {
+    const token = this.getToken()
+    if (!token) return false
+
+    // Verificar si el token ha expirado
+    try {
+      const decoded = jwtDecode(token)
+      const currentTime = Date.now() / 1000
+      return decoded.exp > currentTime
+    } catch (error) {
+      return false
+    }
+  }
+
+  // Verificar si el token está por expirar (en los próximos 5 minutos)
+  isTokenExpiringSoon() {
+    const token = this.getToken()
+    if (!token) return true
+
+    try {
+      const decoded = jwtDecode(token)
+      const currentTime = Date.now() / 1000
+      const fiveMinutes = 5 * 60
+      return (decoded.exp - currentTime) < fiveMinutes
+    } catch (error) {
+      return true
+    }
+  }
+
+  // Refrescar token
+  async refreshToken() {
+    try {
+      const refreshToken = this.getRefreshToken()
+      if (!refreshToken) {
+        throw new Error('No refresh token available')
+      }
+
+      const response = await axios.post('/api/auth/refresh', {
+        refreshToken
+      })
+
+      const { token } = response.data
+
+      sessionStorage.setItem(this.TOKEN_KEY, token)
+      this.setAuthHeader(token)
+
+      return token
+    } catch (error) {
+      this.logout()
+      throw error
+    }
+  }
+
+  // Configurar header de autenticación
+  setAuthHeader(token) {
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    }
+  }
+
+  // Inicializar desde storage
+  initializeAuth() {
+    const token = this.getToken()
+    if (token && this.isAuthenticated()) {
+      this.setAuthHeader(token)
+      return true
+    } else {
+      this.logout()
+      return false
+    }
+  }
+
+  // Obtener información del token
+  getTokenInfo() {
+    const token = this.getToken()
+    if (!token) return null
+
+    try {
+      return jwtDecode(token)
+    } catch (error) {
+      return null
+    }
+  }
+}
+
+export default new AuthService()
+
+
+7. INTEGRACIÓN CON PINIA
+═══════════════════════════════════════════════════════════════════════════════
+
+// stores/session.js
+import { defineStore } from 'pinia'
+import AuthService from '@/services/AuthService'
+import { jwtDecode } from 'jwt-decode'
+
+export const useSessionStore = defineStore('session', {
+  state: () => ({
+    token: null,
+    refreshToken: null,
+    user: null,
+    isAuthenticated: false,
+    sessionExpiry: null
+  }),
+
+  getters: {
+    currentUser: (state) => state.user,
+    
+    isSessionValid: (state) => {
+      if (!state.token) return false
+      
+      try {
+        const decoded = jwtDecode(state.token)
+        const currentTime = Date.now() / 1000
+        return decoded.exp > currentTime
+      } catch {
+        return false
+      }
+    },
+
+    userRole: (state) => state.user?.rol || 'guest',
+
+    hasRole: (state) => {
+      return (role) => state.user?.rol === role
+    },
+
+    hasPermission: (state) => {
+      return (permission) => {
+        return state.user?.permissions?.includes(permission) || false
+      }
+    }
+  },
+
+  actions: {
+    // Inicializar sesión desde storage
+    initializeSession() {
+      const token = sessionStorage.getItem('auth_token')
+      const refreshToken = sessionStorage.getItem('refresh_token')
+      const userData = sessionStorage.getItem('user_data')
+
+      if (token && userData) {
+        try {
+          const decoded = jwtDecode(token)
+          const currentTime = Date.now() / 1000
+
+          if (decoded.exp > currentTime) {
+            this.token = token
+            this.refreshToken = refreshToken
+            this.user = JSON.parse(userData)
+            this.isAuthenticated = true
+            this.sessionExpiry = decoded.exp
+            AuthService.setAuthHeader(token)
+          } else {
+            this.clearSession()
+          }
+        } catch (error) {
+          this.clearSession()
+        }
+      }
+    },
+
+    // Login
+    async login(credentials) {
+      try {
+        const result = await AuthService.login(
+          credentials.email,
+          credentials.password
+        )
+
+        if (result.success) {
+          this.token = AuthService.getToken()
+          this.refreshToken = AuthService.getRefreshToken()
+          this.user = result.user
+          this.isAuthenticated = true
+
+          const decoded = jwtDecode(this.token)
+          this.sessionExpiry = decoded.exp
+
+          return { success: true }
+        }
+
+        return { success: false, error: result.error }
+      } catch (error) {
+        return { success: false, error: error.message }
+      }
+    },
+
+    // Logout
+    logout() {
+      AuthService.logout()
+      this.clearSession()
+    },
+
+    // Limpiar estado
+    clearSession() {
+      this.token = null
+      this.refreshToken = null
+      this.user = null
+      this.isAuthenticated = false
+      this.sessionExpiry = null
+    },
+
+    // Actualizar datos de usuario
+    updateUser(userData) {
+      this.user = { ...this.user, ...userData }
+      sessionStorage.setItem('user_data', JSON.stringify(this.user))
+    },
+
+    // Refrescar token
+    async refreshToken() {
+      try {
+        const newToken = await AuthService.refreshToken()
+        this.token = newToken
+        
+        const decoded = jwtDecode(newToken)
+        this.sessionExpiry = decoded.exp
+
+        return true
+      } catch (error) {
+        this.logout()
+        return false
+      }
+    },
+
+    // Verificar y refrescar si es necesario
+    async checkAndRefreshToken() {
+      if (!this.isAuthenticated) return false
+
+      if (AuthService.isTokenExpiringSoon()) {
+        return await this.refreshToken()
+      }
+
+      return true
+    }
+  }
+})
+
+
+USO EN COMPONENTES:
+
+<script setup>
+import { useSessionStore } from '@/stores/session'
+import { computed } from 'vue'
+
+const sessionStore = useSessionStore()
+
+const currentUser = computed(() => sessionStore.currentUser)
+const isAdmin = computed(() => sessionStore.hasRole('admin'))
+
+const handleLogin = async () => {
+  const result = await sessionStore.login({
+    email: 'user@example.com',
+    password: 'password'
+  })
+
+  if (result.success) {
+    // Redirigir o mostrar mensaje
+  }
+}
+
+const handleLogout = () => {
+  sessionStore.logout()
+}
+</script>
+
+<template>
+  <div>
+    <div v-if="sessionStore.isAuthenticated">
+      <p>Bienvenido {{ currentUser.nombre }}</p>
+      <button @click="handleLogout">Cerrar sesión</button>
+    </div>
+    <div v-else>
+      <button @click="handleLogin">Iniciar sesión</button>
+    </div>
+  </div>
+</template>
+
+
+8. INTERCEPTOR DE AXIOS PARA REFRESH TOKEN
+═══════════════════════════════════════════════════════════════════════════════
+
+// plugins/axios.js
+import axios from 'axios'
+import AuthService from '@/services/AuthService'
+import { useSessionStore } from '@/stores/session'
+
+// Interceptor de peticiones
+axios.interceptors.request.use(
+  (config) => {
+    const token = AuthService.getToken()
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Interceptor de respuestas
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config
+
+    // Si el error es 401 y no hemos intentado refrescar
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true
+
+      try {
+        const sessionStore = useSessionStore()
+        const refreshed = await sessionStore.refreshToken()
+
+        if (refreshed) {
+          const newToken = AuthService.getToken()
+          originalRequest.headers.Authorization = `Bearer ${newToken}`
+          return axios(originalRequest)
+        }
+      } catch (refreshError) {
+        // Redirigir a login
+        const sessionStore = useSessionStore()
+        sessionStore.logout()
+        window.location.href = '/login'
+        return Promise.reject(refreshError)
+      }
+    }
+
+    return Promise.reject(error)
+  }
+)
+
+export default axios
+
+
+9. ROUTER GUARDS PARA PROTEGER RUTAS
+═══════════════════════════════════════════════════════════════════════════════
+
+// router/index.js
+import { createRouter, createWebHistory } from 'vue-router'
+import { useSessionStore } from '@/stores/session'
+
+const routes = [
+  {
+    path: '/',
+    name: 'Home',
+    component: () => import('@/views/HomeView.vue')
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/LoginView.vue'),
+    meta: { requiresGuest: true }
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('@/views/DashboardView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: () => import('@/views/AdminView.vue'),
+    meta: { 
+      requiresAuth: true,
+      requiresRole: 'admin'
+    }
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+// Guard global
+router.beforeEach(async (to, from, next) => {
+  const sessionStore = useSessionStore()
+
+  // Verificar y refrescar token si es necesario
+  await sessionStore.checkAndRefreshToken()
+
+  // Rutas que requieren autenticación
+  if (to.meta.requiresAuth) {
+    if (!sessionStore.isAuthenticated) {
+      next({
+        name: 'Login',
+        query: { redirect: to.fullPath }
+      })
+      return
+    }
+
+    // Verificar rol si es necesario
+    if (to.meta.requiresRole) {
+      const hasRole = sessionStore.hasRole(to.meta.requiresRole)
+      if (!hasRole) {
+        next({ name: 'Home' })
+        return
+      }
+    }
+
+    // Verificar permisos si es necesario
+    if (to.meta.requiresPermission) {
+      const hasPermission = sessionStore.hasPermission(to.meta.requiresPermission)
+      if (!hasPermission) {
+        next({ name: 'Home' })
+        return
+      }
+    }
+  }
+
+  // Rutas solo para invitados (login, register)
+  if (to.meta.requiresGuest && sessionStore.isAuthenticated) {
+    next({ name: 'Dashboard' })
+    return
+  }
+
+  next()
+})
+
+export default router
+
+
+10. TIMEOUT DE INACTIVIDAD
+═══════════════════════════════════════════════════════════════════════════════
+
+// composables/useInactivityTimeout.js
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useSessionStore } from '@/stores/session'
+
+export function useInactivityTimeout(timeoutMinutes = 30) {
+  const sessionStore = useSessionStore()
+  let inactivityTimer = null
+  const warningTime = 5 // minutos antes de avisar
+
+  const resetTimer = () => {
+    if (inactivityTimer) {
+      clearTimeout(inactivityTimer)
+    }
+
+    // Configurar nuevo timer
+    const timeoutMs = timeoutMinutes * 60 * 1000
+    inactivityTimer = setTimeout(() => {
+      handleTimeout()
+    }, timeoutMs)
+  }
+
+  const handleTimeout = () => {
+    sessionStore.logout()
+    alert('Tu sesión ha expirado por inactividad')
+    window.location.href = '/login'
+  }
+
+  const setupListeners = () => {
+    // Eventos que resetean el timer
+    const events = [
+      'mousedown',
+      'mousemove',
+      'keypress',
+      'scroll',
+      'touchstart',
+      'click'
+    ]
+
+    events.forEach(event => {
+      window.addEventListener(event, resetTimer, true)
+    })
+  }
+
+  const removeListeners = () => {
+    const events = [
+      'mousedown',
+      'mousemove',
+      'keypress',
+      'scroll',
+      'touchstart',
+      'click'
+    ]
+
+    events.forEach(event => {
+      window.removeEventListener(event, resetTimer, true)
+    })
+  }
+
+  onMounted(() => {
+    if (sessionStore.isAuthenticated) {
+      setupListeners()
+      resetTimer()
+    }
+  })
+
+  onUnmounted(() => {
+    removeListeners()
+    if (inactivityTimer) {
+      clearTimeout(inactivityTimer)
+    }
+  })
+
+  return {
+    resetTimer
+  }
+}
+
+
+USO EN APP.VUE:
+
+<script setup>
+import { useInactivityTimeout } from '@/composables/useInactivityTimeout'
+import { useSessionStore } from '@/stores/session'
+
+const sessionStore = useSessionStore()
+
+// Configurar timeout de 30 minutos
+if (sessionStore.isAuthenticated) {
+  useInactivityTimeout(30)
+}
+</script>
+
+
+11. PERSISTENCIA DE SESIÓN ENTRE TABS
+═══════════════════════════════════════════════════════════════════════════════
+
+// composables/useSessionSync.js
+import { onMounted, onUnmounted } from 'vue'
+import { useSessionStore } from '@/stores/session'
+
+export function useSessionSync() {
+  const sessionStore = useSessionStore()
+
+  const handleStorageChange = (event) => {
+    // Detectar cambios en sessionStorage desde otras tabs
+    if (event.key === 'auth_token') {
+      if (event.newValue === null) {
+        // Token eliminado en otra pestaña (logout)
+        sessionStore.logout()
+        window.location.href = '/login'
+      } else if (event.newValue !== event.oldValue) {
+        // Token actualizado en otra pestaña
+        sessionStore.initializeSession()
+      }
+    }
+  }
+
+  onMounted(() => {
+    // Nota: Storage event no funciona con sessionStorage entre tabs
+    // Solo funciona con localStorage
+    // Para sincronizar sessionStorage, necesitarías usar Broadcast Channel API
+    window.addEventListener('storage', handleStorageChange)
+  })
+
+  onUnmounted(() => {
+    window.removeEventListener('storage', handleStorageChange)
+  })
+}
+
+
+USANDO BROADCAST CHANNEL API (Mejor opción):
+
+// composables/useSessionBroadcast.js
+import { onMounted, onUnmounted } from 'vue'
+import { useSessionStore } from '@/stores/session'
+
+export function useSessionBroadcast() {
+  const sessionStore = useSessionStore()
+  let channel = null
+
+  const setupBroadcast = () => {
+    if ('BroadcastChannel' in window) {
+      channel = new BroadcastChannel('session_channel')
+
+      channel.onmessage = (event) => {
+        const { type, data } = event.data
+
+        switch (type) {
+          case 'logout':
+            sessionStore.logout()
+            break
+          case 'login':
+            sessionStore.initializeSession()
+            break
+          case 'token_refresh':
+            sessionStore.initializeSession()
+            break
+        }
+      }
+    }
+  }
+
+  const broadcast = (type, data = null) => {
+    if (channel) {
+      channel.postMessage({ type, data })
+    }
+  }
+
+  onMounted(() => {
+    setupBroadcast()
+  })
+
+  onUnmounted(() => {
+    if (channel) {
+      channel.close()
+    }
+  })
+
+  return {
+    broadcast
+  }
+}
+
+
+USO:
+
+// En el store de sesión, al hacer logout
+const { broadcast } = useSessionBroadcast()
+
+logout() {
+  AuthService.logout()
+  this.clearSession()
+  broadcast('logout')
+}
+
+
+12. SESIONES BASADAS EN SERVIDOR (Ejemplo con Express)
+═══════════════════════════════════════════════════════════════════════════════
+
+BACKEND (Node.js + Express):
+
+// server.js
+const express = require('express')
+const session = require('express-session')
+const cors = require('cors')
+
+const app = express()
+
+// Configuración de sesión
+app.use(session({
+  secret: 'tu-secreto-super-seguro',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // true en producción con HTTPS
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 // 24 horas
+  }
+}))
+
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}))
+app.use(express.json())
+
+// Endpoint de login
+app.post('/api/auth/login', (req, res) => {
+  const { email, password } = req.body
+
+  // Validar credenciales (esto es un ejemplo)
+  if (email === 'user@example.com' && password === 'password') {
+    // Guardar datos en sesión
+    req.session.userId = 1
+    req.session.email = email
+    req.session.role = 'admin'
+
+    res.json({
+      success: true,
+      user: {
+        id: 1,
+        email: email,
+        role: 'admin'
+      }
+    })
+  } else {
+    res.status(401).json({
+      success: false,
+      message: 'Credenciales inválidas'
+    })
+  }
+})
+
+// Endpoint para verificar sesión
+app.get('/api/auth/check', (req, res) => {
+  if (req.session.userId) {
+    res.json({
+      authenticated: true,
+      user: {
+        id: req.session.userId,
+        email: req.session.email,
+        role: req.session.role
+      }
+    })
+  } else {
+    res.json({ authenticated: false })
+  }
+})
+
+// Endpoint de logout
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      res.status(500).json({ success: false })
+    } else {
+      res.json({ success: true })
+    }
+  })
+})
+
+app.listen(3000, () => {
+  console.log('Servidor corriendo en http://localhost:3000')
+})
+
+
+FRONTEND (Vue):
+
+// services/ServerSessionService.js
+import axios from 'axios'
+
+const api = axios.create({
+  baseURL: 'http://localhost:3000',
+  withCredentials: true // Importante para enviar cookies
+})
+
+class ServerSessionService {
+  async login(email, password) {
+    try {
+      const response = await api.post('/api/auth/login', {
+        email,
+        password
+      })
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async checkSession() {
+    try {
+      const response = await api.get('/api/auth/check')
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async logout() {
+    try {
+      const response = await api.post('/api/auth/logout')
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+}
+
+export default new ServerSessionService()
+
+
+13. BUENAS PRÁCTICAS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. SEGURIDAD
+   ✓ Usar HTTPS en producción
+   ✓ Implementar CSRF protection
+   ✓ Validar tokens en cada petición
+   ✓ Usar tokens de corta duración con refresh tokens
+   ✓ No almacenar datos sensibles en sessionStorage
+   ✓ Implementar rate limiting en endpoints de auth
+   ✓ Usar cookies httpOnly para tokens (cuando sea posible)
+
+2. EXPIRACIÓN
+   ✓ Tokens de acceso: 15-30 minutos
+   ✓ Refresh tokens: 7-30 días
+   ✓ Implementar timeout por inactividad
+   ✓ Avisar al usuario antes de expiración
+
+3. MANEJO DE ERRORES
+   ✓ Capturar errores de red
+   ✓ Manejar expiración de token
+   ✓ Proporcionar feedback al usuario
+   ✓ Redirigir a login cuando sea necesario
+
+4. EXPERIENCIA DE USUARIO
+   ✓ Mantener sesión entre recargas
+   ✓ Recordar última página visitada
+   ✓ Implementar "Remember Me" opcionalmente
+   ✓ Mostrar estado de carga durante autenticación
+
+5. ALMACENAMIENTO
+   ✓ SessionStorage para datos temporales de la sesión
+   ✓ LocalStorage para "Remember Me"
+   ✓ Cookies para tokens (con httpOnly si es posible)
+   ✓ Nunca almacenar contraseñas
+
+6. SINCRONIZACIÓN
+   ✓ Usar Broadcast Channel para sincronizar entre tabs
+   ✓ Actualizar estado cuando expire token
+   ✓ Cerrar todas las tabs al hacer logout
+
+7. TESTING
+   ✓ Testear flujo de login/logout
+   ✓ Testear expiración de token
+   ✓ Testear refresh de token
+   ✓ Testear guards de rutas
+
+
+14. SOLUCIÓN DE PROBLEMAS COMUNES
+═══════════════════════════════════════════════════════════════════════════════
+
+PROBLEMA: Token no se envía en peticiones
+SOLUCIÓN: 
+- Verificar que axios.defaults.headers.common['Authorization'] esté configurado
+- O usar interceptor de axios
+- Si es cookies, verificar withCredentials: true
+
+PROBLEMA: Sesión no persiste al recargar
+SOLUCIÓN:
+- Inicializar sesión en App.vue mounted
+- Llamar a sessionStore.initializeSession()
+
+PROBLEMA: 401 Unauthorized constante
+SOLUCIÓN:
+- Verificar que el token no haya expirado
+- Implementar refresh token
+- Verificar formato: "Bearer {token}"
+
+PROBLEMA: Logout no funciona en todas las tabs
+SOLUCIÓN:
+- Usar Broadcast Channel API
+- Sincronizar evento de logout
+
+PROBLEMA: CORS error con cookies
+SOLUCIÓN:
+- Backend: cors({ credentials: true, origin: 'http://localhost:5173' })
+- Frontend: axios.create({ withCredentials: true })
+
+
+15. EJEMPLO COMPLETO: COMPONENTE DE LOGIN
+═══════════════════════════════════════════════════════════════════════════════
+
+<script setup>
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useSessionStore } from '@/stores/session'
+
+const router = useRouter()
+const route = useRoute()
+const sessionStore = useSessionStore()
+
+const email = ref('')
+const password = ref('')
+const rememberMe = ref(false)
+const loading = ref(false)
+const error = ref('')
+
+const isFormValid = computed(() => {
+  return email.value.length > 0 && password.value.length > 0
+})
+
+const handleLogin = async () => {
+  if (!isFormValid.value) return
+
+  loading.value = true
+  error.value = ''
+
+  try {
+    const result = await sessionStore.login({
+      email: email.value,
+      password: password.value
+    })
+
+    if (result.success) {
+      // Redirigir a la página de origen o dashboard
+      const redirect = route.query.redirect || '/dashboard'
+      router.push(redirect)
+    } else {
+      error.value = result.error || 'Error al iniciar sesión'
+    }
+  } catch (err) {
+    error.value = 'Error de conexión'
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
+<template>
+  <div class="login-container">
+    <div class="login-card">
+      <h1>Iniciar Sesión</h1>
+      
+      <form @submit.prevent="handleLogin">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            v-model="email"
+            type="email"
+            required
+            :disabled="loading"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <input
+            id="password"
+            v-model="password"
+            type="password"
+            required
+            :disabled="loading"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input v-model="rememberMe" type="checkbox" />
+            Recordarme
+          </label>
+        </div>
+
+        <div v-if="error" class="error-message">
+          {{ error }}
+        </div>
+
+        <button 
+          type="submit" 
+          :disabled="!isFormValid || loading"
+          class="btn-login"
+        >
+          {{ loading ? 'Iniciando...' : 'Iniciar Sesión' }}
+        </button>
+      </form>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.login-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+input[type="email"],
+input[type="password"] {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.btn-login {
+  width: 100%;
+  padding: 0.75rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.btn-login:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.btn-login:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #dc3545;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: #f8d7da;
+  border-radius: 4px;
+}
+</style>
+
+
+16. CHECKLIST DE IMPLEMENTACIÓN
+═══════════════════════════════════════════════════════════════════════════════
+
+□ Decidir tipo de sesión (JWT client-side, server-side, o mixto)
+□ Instalar dependencias necesarias (jwt-decode, axios)
+□ Crear servicio de autenticación
+□ Crear store de sesión con Pinia
+□ Implementar composable para sessionStorage
+□ Configurar interceptores de Axios
+□ Implementar router guards
+□ Crear componentes de login/logout
+□ Implementar refresh token
+□ Configurar timeout de inactividad
+□ Sincronizar sesión entre tabs
+□ Implementar manejo de errores
+□ Testear flujos de autenticación
+□ Configurar HTTPS en producción
+□ Documentar flujo de sesión
+
+═══════════════════════════════════════════════════════════════════════════════
+                                FIN DEL DOCUMENTO
+═══════════════════════════════════════════════════════════════════════════════

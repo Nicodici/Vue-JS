@@ -1,4 +1,4 @@
- const linksList = [
+const linksList = [
   {
     title: 'Docs',
     caption: 'quasar.dev',
@@ -16,12 +16,19 @@
     caption: 'Prueba de template',
     icon: 'thumb_up',
     link: '/prueba',
-  },{
-    title: 'New Page',
-    caption: 'New Page Template',
+  },
+  {
+    title: 'Nueva ruta',
+    caption: 'Prueba de ruta',
     icon: 'new_releases',
     link: '/newpage',
-  }
+  },
+  {
+    title: 'Login',
+    caption: 'Formulario de login',
+    icon: 'login',
+    link: '/login',
+  },
 ]
 
 export default linksList

@@ -1,0 +1,702 @@
+═══════════════════════════════════════════════════════════════════════════════
+                        COOKIES EN VUE.JS - GUÍA COMPLETA
+═══════════════════════════════════════════════════════════════════════════════
+
+1. ¿QUÉ SON LAS COOKIES?
+═══════════════════════════════════════════════════════════════════════════════
+
+Las cookies son pequeños fragmentos de datos que los sitios web almacenan en el 
+navegador del usuario. Se envían automáticamente con cada petición HTTP al 
+servidor que las creó.
+
+CARACTERÍSTICAS:
+- Tamaño máximo: aproximadamente 4KB por cookie
+- Se almacenan en el navegador del cliente
+- Tienen fecha de expiración (pueden ser temporales o persistentes)
+- Se envían automáticamente en cada petición HTTP al dominio que las creó
+- Pueden ser accedidas tanto por el cliente como por el servidor
+
+USOS COMUNES:
+- Gestión de sesiones (login, carrito de compras)
+- Personalización (preferencias del usuario, temas)
+- Seguimiento y análisis (comportamiento del usuario)
+- Tokens de autenticación
+- Recordar idioma o región
+
+
+2. COOKIES VS LOCALSTORAGE VS SESSIONSTORAGE
+═══════════════════════════════════════════════════════════════════════════════
+
+COOKIES:
+  • Capacidad: ~4KB
+  • Expiración: Configurable
+  • Enviadas en peticiones HTTP: SÍ
+  • Accesible desde: Cliente y Servidor
+  • Uso: Autenticación, sesiones
+
+LOCALSTORAGE:
+  • Capacidad: ~5-10MB
+  • Expiración: Nunca (hasta borrado manual)
+  • Enviadas en peticiones HTTP: NO
+  • Accesible desde: Solo Cliente
+  • Uso: Datos persistentes del usuario
+
+SESSIONSTORAGE:
+  • Capacidad: ~5-10MB
+  • Expiración: Al cerrar la pestaña
+  • Enviadas en peticiones HTTP: NO
+  • Accesible desde: Solo Cliente
+  • Uso: Datos temporales de la sesión
+
+
+3. MANIPULACIÓN NATIVA DE COOKIES EN JAVASCRIPT
+═══════════════════════════════════════════════════════════════════════════════
+
+CREAR/MODIFICAR UNA COOKIE:
+------------------------------
+document.cookie = "username=Juan; expires=Fri, 31 Dec 2026 23:59:59 GMT; path=/";
+
+LEER TODAS LAS COOKIES:
+------------------------------
+console.log(document.cookie); // "cookie1=valor1; cookie2=valor2"
+
+ELIMINAR UNA COOKIE:
+------------------------------
+document.cookie = "username=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+
+ATRIBUTOS DE COOKIES:
+------------------------------
+- expires: Fecha de expiración
+- max-age: Tiempo de vida en segundos
+- path: Ruta donde la cookie es válida
+- domain: Dominio donde la cookie es válida
+- secure: Solo se envía por HTTPS
+- httpOnly: No accesible desde JavaScript (solo servidor)
+- SameSite: Controla el envío cross-site (Strict, Lax, None)
+
+
+4. MÓDULOS PARA GESTIONAR COOKIES EN VUE.JS
+═══════════════════════════════════════════════════════════════════════════════
+
+4.1 JS-COOKIE (Recomendado)
+------------------------------
+Es la librería más popular y sencilla para trabajar con cookies.
+
+INSTALACIÓN:
+npm install js-cookie
+
+IMPORTACIÓN:
+import Cookies from 'js-cookie'
+
+USO BÁSICO:
+// Crear cookie
+Cookies.set('nombre', 'valor')
+Cookies.set('usuario', 'Juan', { expires: 7 }) // expira en 7 días
+
+// Leer cookie
+const usuario = Cookies.get('usuario')
+
+// Leer todas las cookies
+const todasLasCookies = Cookies.get()
+
+// Eliminar cookie
+Cookies.remove('usuario')
+
+// Con opciones avanzadas
+Cookies.set('token', 'abc123', {
+  expires: 7,           // días
+  path: '/',            // ruta
+  domain: 'ejemplo.com',
+  secure: true,         // solo HTTPS
+  sameSite: 'strict'
+})
+
+
+4.2 VUE-COOKIES
+------------------------------
+Plugin específico para Vue que integra cookies en la instancia de Vue.
+
+INSTALACIÓN:
+npm install vue-cookies
+
+CONFIGURACIÓN EN MAIN.JS:
+import { createApp } from 'vue'
+import VueCookies from 'vue-cookies'
+import App from './App.vue'
+
+const app = createApp(App)
+app.use(VueCookies)
+app.mount('#app')
+
+// Configuración global opcional
+app.use(VueCookies, { expires: '7d' })
+
+USO EN COMPONENTES:
+// Crear cookie
+this.$cookies.set('nombre', 'valor')
+this.$cookies.set('usuario', 'Juan', '7d')
+
+// Leer cookie
+const usuario = this.$cookies.get('usuario')
+
+// Verificar si existe
+if (this.$cookies.isKey('usuario')) {
+  // ...
+}
+
+// Eliminar cookie
+this.$cookies.remove('usuario')
+
+// Eliminar todas
+this.$cookies.keys().forEach(cookie => {
+  this.$cookies.remove(cookie)
+})
+
+USO EN COMPOSITION API:
+import { inject } from 'vue'
+
+export default {
+  setup() {
+    const $cookies = inject('$cookies')
+    
+    $cookies.set('nombre', 'valor')
+    const valor = $cookies.get('nombre')
+    
+    return { }
+  }
+}
+
+
+4.3 UNIVERSAL-COOKIE
+------------------------------
+Funciona tanto en cliente como en servidor (SSR).
+
+INSTALACIÓN:
+npm install universal-cookie
+
+USO:
+import Cookies from 'universal-cookie'
+const cookies = new Cookies()
+
+cookies.set('nombre', 'valor', { path: '/' })
+const valor = cookies.get('nombre')
+cookies.remove('nombre')
+
+
+5. IMPLEMENTACIÓN EN VUE 3 CON COMPOSITION API
+═══════════════════════════════════════════════════════════════════════════════
+
+5.1 COMPOSABLE PERSONALIZADO CON JS-COOKIE
+------------------------------
+
+// composables/useCookies.js
+import Cookies from 'js-cookie'
+
+export function useCookies() {
+  const setCookie = (name, value, options = {}) => {
+    const defaultOptions = {
+      expires: 7,
+      path: '/',
+      sameSite: 'strict'
+    }
+    Cookies.set(name, value, { ...defaultOptions, ...options })
+  }
+
+  const getCookie = (name) => {
+    return Cookies.get(name)
+  }
+
+  const removeCookie = (name, options = {}) => {
+    const defaultOptions = { path: '/' }
+    Cookies.remove(name, { ...defaultOptions, ...options })
+  }
+
+  const getAllCookies = () => {
+    return Cookies.get()
+  }
+
+  return {
+    setCookie,
+    getCookie,
+    removeCookie,
+    getAllCookies
+  }
+}
+
+USO EN COMPONENTE:
+
+<script setup>
+import { useCookies } from '@/composables/useCookies'
+
+const { setCookie, getCookie, removeCookie } = useCookies()
+
+// Guardar preferencias
+const guardarPreferencias = () => {
+  setCookie('tema', 'oscuro', { expires: 365 })
+  setCookie('idioma', 'es')
+}
+
+// Leer preferencias
+const tema = getCookie('tema')
+const idioma = getCookie('idioma')
+
+// Eliminar
+const cerrarSesion = () => {
+  removeCookie('token')
+  removeCookie('usuario')
+}
+</script>
+
+
+5.2 SERVICIO DE COOKIES
+------------------------------
+
+// services/CookieService.js
+import Cookies from 'js-cookie'
+
+class CookieService {
+  // Autenticación
+  setAuthToken(token, expiresInDays = 7) {
+    Cookies.set('auth_token', token, {
+      expires: expiresInDays,
+      secure: true,
+      sameSite: 'strict',
+      path: '/'
+    })
+  }
+
+  getAuthToken() {
+    return Cookies.get('auth_token')
+  }
+
+  removeAuthToken() {
+    Cookies.remove('auth_token', { path: '/' })
+  }
+
+  // Preferencias de usuario
+  setUserPreferences(preferences) {
+    Cookies.set('user_preferences', JSON.stringify(preferences), {
+      expires: 365,
+      path: '/'
+    })
+  }
+
+  getUserPreferences() {
+    const prefs = Cookies.get('user_preferences')
+    return prefs ? JSON.parse(prefs) : null
+  }
+
+  // Consentimiento de cookies
+  setCookieConsent(consent) {
+    Cookies.set('cookie_consent', consent, {
+      expires: 365,
+      path: '/'
+    })
+  }
+
+  hasCookieConsent() {
+    return Cookies.get('cookie_consent') === 'true'
+  }
+
+  // Limpiar todas las cookies de la app
+  clearAllAppCookies() {
+    Cookies.remove('auth_token', { path: '/' })
+    Cookies.remove('user_preferences', { path: '/' })
+  }
+}
+
+export default new CookieService()
+
+
+USO:
+import CookieService from '@/services/CookieService'
+
+// Login
+CookieService.setAuthToken('token123', 30)
+
+// Verificar autenticación
+const token = CookieService.getAuthToken()
+if (token) {
+  // Usuario autenticado
+}
+
+// Logout
+CookieService.removeAuthToken()
+
+
+6. INTEGRACIÓN CON PINIA (STATE MANAGEMENT)
+═══════════════════════════════════════════════════════════════════════════════
+
+// stores/auth.js
+import { defineStore } from 'pinia'
+import Cookies from 'js-cookie'
+
+export const useAuthStore = defineStore('auth', {
+  state: () => ({
+    token: Cookies.get('auth_token') || null,
+    user: null
+  }),
+
+  getters: {
+    isAuthenticated: (state) => !!state.token
+  },
+
+  actions: {
+    login(token, userData) {
+      this.token = token
+      this.user = userData
+      
+      // Guardar en cookie
+      Cookies.set('auth_token', token, {
+        expires: 7,
+        secure: true,
+        sameSite: 'strict'
+      })
+      
+      // Guardar usuario (opcional)
+      Cookies.set('user_data', JSON.stringify(userData), { expires: 7 })
+    },
+
+    logout() {
+      this.token = null
+      this.user = null
+      
+      // Eliminar cookies
+      Cookies.remove('auth_token')
+      Cookies.remove('user_data')
+    },
+
+    initializeFromCookies() {
+      const token = Cookies.get('auth_token')
+      const userData = Cookies.get('user_data')
+      
+      if (token) {
+        this.token = token
+        this.user = userData ? JSON.parse(userData) : null
+      }
+    }
+  }
+})
+
+// En main.js o App.vue
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+authStore.initializeFromCookies()
+
+
+7. COOKIES Y SEGURIDAD
+═══════════════════════════════════════════════════════════════════════════════
+
+7.1 ATRIBUTOS DE SEGURIDAD
+------------------------------
+
+SECURE:
+- Solo se envía por HTTPS
+- Obligatorio para datos sensibles
+Cookies.set('token', 'abc', { secure: true })
+
+HTTPONLY:
+- No accesible desde JavaScript
+- Solo se puede configurar desde el servidor
+- Protege contra XSS (Cross-Site Scripting)
+
+SAMESITE:
+- Strict: No se envía en peticiones cross-site
+- Lax: Se envía en navegación top-level
+- None: Se envía en todas las peticiones (requiere Secure)
+Cookies.set('token', 'abc', { sameSite: 'strict' })
+
+EJEMPLO SEGURO:
+Cookies.set('auth_token', token, {
+  expires: 7,
+  path: '/',
+  secure: true,           // Solo HTTPS
+  sameSite: 'strict'      // Protección CSRF
+})
+
+
+7.2 BUENAS PRÁCTICAS DE SEGURIDAD
+------------------------------
+
+✓ Nunca almacenar contraseñas en cookies
+✓ Usar HTTPS en producción
+✓ Establecer SameSite para prevenir CSRF
+✓ Usar tokens de corta duración
+✓ Implementar refresh tokens
+✓ Validar cookies en el servidor
+✓ Encriptar datos sensibles antes de guardarlos
+✓ No confiar ciegamente en cookies del cliente
+✓ Implementar expiración adecuada
+✓ Usar httpOnly para tokens de autenticación (desde servidor)
+
+
+8. BUENAS PRÁCTICAS GENERALES
+═══════════════════════════════════════════════════════════════════════════════
+
+1. NOMENCLATURA CONSISTENTE
+   - Usar prefijos: app_token, app_preferences
+   - Nombres descriptivos y en minúsculas
+   - Separar con guiones bajos
+
+2. GESTIÓN DE EXPIRACIÓN
+   - Tokens de sesión: 1-7 días
+   - Preferencias: 365 días
+   - Datos temporales: session cookies (sin expires)
+
+3. TAMAÑO DE DATOS
+   - Mantener cookies pequeñas (<4KB)
+   - Almacenar solo identificadores, no datos completos
+   - Usar localStorage para datos grandes
+
+4. LIMPIEZA
+   - Eliminar cookies al cerrar sesión
+   - Limpiar cookies innecesarias
+   - Implementar rotación de tokens
+
+5. PRIVACIDAD
+   - Implementar banner de consentimiento (GDPR)
+   - Documentar qué cookies se usan
+   - Permitir al usuario rechazar cookies no esenciales
+   - Proporcionar forma de eliminar cookies
+
+6. MANEJO DE ERRORES
+   try {
+     Cookies.set('nombre', 'valor')
+   } catch (error) {
+     console.error('Error al guardar cookie:', error)
+   }
+
+7. VALORES POR DEFECTO
+   const getPreference = (key, defaultValue) => {
+     return Cookies.get(key) || defaultValue
+   }
+
+
+9. EJEMPLO COMPLETO: PERSISTENCIA DE TEMA
+═══════════════════════════════════════════════════════════════════════════════
+
+// composables/useTheme.js
+import { ref, watch } from 'vue'
+import Cookies from 'js-cookie'
+
+export function useTheme() {
+  const theme = ref(Cookies.get('theme') || 'light')
+
+  const setTheme = (newTheme) => {
+    theme.value = newTheme
+    document.documentElement.setAttribute('data-theme', newTheme)
+    Cookies.set('theme', newTheme, { expires: 365 })
+  }
+
+  const toggleTheme = () => {
+    const newTheme = theme.value === 'light' ? 'dark' : 'light'
+    setTheme(newTheme)
+  }
+
+  // Aplicar tema inicial
+  document.documentElement.setAttribute('data-theme', theme.value)
+
+  return {
+    theme,
+    setTheme,
+    toggleTheme
+  }
+}
+
+// Componente
+<script setup>
+import { useTheme } from '@/composables/useTheme'
+
+const { theme, toggleTheme } = useTheme()
+</script>
+
+<template>
+  <div>
+    <p>Tema actual: {{ theme }}</p>
+    <button @click="toggleTheme">Cambiar tema</button>
+  </div>
+</template>
+
+
+10. EJEMPLO COMPLETO: BANNER DE CONSENTIMIENTO
+═══════════════════════════════════════════════════════════════════════════════
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import Cookies from 'js-cookie'
+
+const showBanner = ref(false)
+
+onMounted(() => {
+  // Mostrar banner solo si no hay consentimiento
+  const consent = Cookies.get('cookie_consent')
+  if (!consent) {
+    showBanner.value = true
+  }
+})
+
+const acceptCookies = () => {
+  Cookies.set('cookie_consent', 'accepted', { expires: 365 })
+  showBanner.value = false
+  // Aquí podrías inicializar analytics u otras cookies
+}
+
+const rejectCookies = () => {
+  Cookies.set('cookie_consent', 'rejected', { expires: 365 })
+  showBanner.value = false
+  // Solo cookies esenciales
+}
+</script>
+
+<template>
+  <div v-if="showBanner" class="cookie-banner">
+    <div class="banner-content">
+      <p>
+        Usamos cookies para mejorar tu experiencia. 
+        ¿Aceptas el uso de cookies?
+      </p>
+      <div class="banner-actions">
+        <button @click="acceptCookies">Aceptar</button>
+        <button @click="rejectCookies">Rechazar</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.cookie-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #333;
+  color: white;
+  padding: 1rem;
+  z-index: 1000;
+}
+
+.banner-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.banner-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+</style>
+
+
+11. TESTING DE COOKIES
+═══════════════════════════════════════════════════════════════════════════════
+
+// tests/CookieService.test.js
+import { describe, it, expect, beforeEach } from 'vitest'
+import Cookies from 'js-cookie'
+import CookieService from '@/services/CookieService'
+
+describe('CookieService', () => {
+  beforeEach(() => {
+    // Limpiar cookies antes de cada test
+    document.cookie.split(';').forEach(cookie => {
+      const name = cookie.split('=')[0].trim()
+      Cookies.remove(name)
+    })
+  })
+
+  it('debe guardar y recuperar token', () => {
+    CookieService.setAuthToken('token123')
+    expect(CookieService.getAuthToken()).toBe('token123')
+  })
+
+  it('debe eliminar token', () => {
+    CookieService.setAuthToken('token123')
+    CookieService.removeAuthToken()
+    expect(CookieService.getAuthToken()).toBeUndefined()
+  })
+
+  it('debe guardar preferencias como JSON', () => {
+    const prefs = { theme: 'dark', lang: 'es' }
+    CookieService.setUserPreferences(prefs)
+    expect(CookieService.getUserPreferences()).toEqual(prefs)
+  })
+})
+
+
+12. SOLUCIÓN DE PROBLEMAS COMUNES
+═══════════════════════════════════════════════════════════════════════════════
+
+PROBLEMA: Cookie no se guarda
+SOLUCIÓN: 
+- Verificar que el dominio sea correcto
+- Asegurar que path sea '/'
+- En localhost, no usar atributo domain
+
+PROBLEMA: Cookie no se elimina
+SOLUCIÓN:
+- Usar las mismas opciones (path, domain) al eliminar
+Cookies.remove('nombre', { path: '/' })
+
+PROBLEMA: Cookie no persiste
+SOLUCIÓN:
+- Verificar atributo expires
+- Verificar que no sea sessionStorage
+
+PROBLEMA: Cookie muy grande
+SOLUCIÓN:
+- Almacenar solo IDs, no objetos completos
+- Usar localStorage para datos grandes
+
+PROBLEMA: Cookies bloqueadas en iframe
+SOLUCIÓN:
+- Configurar SameSite='None' y Secure=true
+- Configurar headers CORS correctamente
+
+
+13. RECURSOS ADICIONALES
+═══════════════════════════════════════════════════════════════════════════════
+
+LIBRERÍAS:
+- js-cookie: https://github.com/js-cookie/js-cookie
+- vue-cookies: https://github.com/cmp-cc/vue-cookies
+- universal-cookie: https://github.com/reactivestack/cookies
+
+DOCUMENTACIÓN:
+- MDN Cookies: https://developer.mozilla.org/es/docs/Web/HTTP/Cookies
+- RFC 6265: https://tools.ietf.org/html/rfc6265
+
+NORMATIVAS:
+- GDPR (Europa)
+- CCPA (California)
+- ePrivacy Directive
+
+
+14. CHECKLIST DE IMPLEMENTACIÓN
+═══════════════════════════════════════════════════════════════════════════════
+
+□ Instalar librería de cookies (js-cookie o vue-cookies)
+□ Crear servicio/composable para gestión centralizada
+□ Implementar banner de consentimiento
+□ Configurar opciones de seguridad (secure, sameSite)
+□ Establecer tiempos de expiración apropiados
+□ Documentar cookies utilizadas
+□ Implementar limpieza en logout
+□ Testear funcionalidad
+□ Revisar cumplimiento de privacidad (GDPR)
+□ Configurar HTTPS en producción
+
+═══════════════════════════════════════════════════════════════════════════════
+                                FIN DEL DOCUMENTO
+═══════════════════════════════════════════════════════════════════════════════
