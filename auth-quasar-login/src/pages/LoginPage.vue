@@ -1,22 +1,31 @@
 <template>
   <q-page class="flex flex-center" style="height: 90vh; overflow: hidden">
     <div class="login-container">
-      <div class="text-h5 text-center q-mb-xs">Ingresar</div>
-      <q-form @submit.prevent="onSubmit" @reset="onReset" class="login-form">
+      <div class="text-h5 text-center q-mb-xs titleColor">Ingresar</div>
+      <q-form @submit.prevent="authUser" @reset="onReset" class="login-form">
         <q-input class="q-mb-md" filled v-model="nameUser" label="Usuario">
           <template v-slot:prepend>
             <q-icon name="las la-user" />
           </template>
         </q-input>
-        <q-input class="q-mb-md" filled v-model="passwUser" label="Contraseña" :type="showPassword ? 'text' : 'password'">
+        <q-input
+          class="q-mb-md"
+          filled
+          v-model="passwUser"
+          label="Contraseña"
+          :type="showPassword ? 'text' : 'password'"
+        >
           <template v-slot:prepend>
             <q-icon name="las la-lock" />
           </template>
           <template v-slot:append>
-            <q-icon :name="showPassword ? 'las la-eye-slash' : 'las la-eye'" @click="togglePasswordVisibility" />
+            <q-icon
+              :name="showPassword ? 'las la-eye-slash' : 'las la-eye'"
+              @click="togglePasswordVisibility"
+            />
           </template>
         </q-input>
-        <div class="flex flex-row items-center justify-center q-mt-md q-gutter-md">
+        <div class="flex flex-row items-center justify-center q-mt-md q-gutter-md q-mb-xl">
           <q-btn label="Enviar" type="submit" color="primary" />
           <q-btn label="Limpiar" type="reset" color="secondary" />
         </div>
@@ -35,11 +44,38 @@
 </template>
 
 <script setup>
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth'
+import { useAuthStore } from 'src/stores/authStore'
 import { ref } from 'vue'
 import { useQuasar } from 'quasar'
+
+const useAuth = useAuthStore()
 const $q = useQuasar()
 let nameUser = ref('')
 let passwUser = ref('')
+
+const authUser = () => {
+  const auth = getAuth()
+  signInWithEmailAndPassword(auth, nameUser.value, passwUser.value)
+    .then(() => {
+      console.log('Usuario autenticado correctamente')
+      useAuth.user = nameUser.value
+      useAuth.isAuthenticated = true
+      $q.notify({
+        type: 'positive',
+        message: 'Usuario autenticado correctamente',
+        icon: 'las la-check-circle',
+      })
+    })
+    .catch((error) => {
+      console.log('Error al autenticar al usuario:', error)
+      $q.notify({
+        type: 'negative',
+        message: 'Error al autenticar al usuario',
+        icon: 'las la-times-circle',
+      })
+    })
+}
 
 const onReset = () => {
   nameUser.value = ''
@@ -50,11 +86,6 @@ const onReset = () => {
     icon: 'las la-info-circle',
   })
 }
-
-const onSubmit = () => {
-  alert(`Usuario: ${nameUser.value} - Contraseña: ${passwUser.value}`)
-}
-
 const showPassword = ref(false)
 
 const togglePasswordVisibility = () => {
@@ -72,5 +103,9 @@ const togglePasswordVisibility = () => {
   border: 1px solid rgb(209, 209, 209);
   border-radius: 10px;
   padding: 30px 20px;
+}
+
+.titleColor {
+  color: #35495e;
 }
 </style>

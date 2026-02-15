@@ -1,4 +1,5 @@
 import { defineRouter } from '#q-app/wrappers'
+import { useAuthStore } from 'src/stores/authStore'
 import {
   createRouter,
   createMemoryHistory,
@@ -23,7 +24,6 @@ export default defineRouter(function (/* { store, ssrContext } */) {
       ? createWebHistory
       : createWebHashHistory
 
-      
   const Router = createRouter({
     scrollBehavior: () => ({ left: 0, top: 0 }),
     routes,
@@ -33,18 +33,18 @@ export default defineRouter(function (/* { store, ssrContext } */) {
     // quasar.conf.js -> build -> publicPath
     history: createHistory(process.env.VUE_ROUTER_BASE),
   })
-
   Router.beforeEach((to, from, next) => {
-  const requiresAuth = to.meta.requireAuth
-  const isAuthenticated = false// tu lógica de auth
-  
-  if (requiresAuth && !isAuthenticated) {
-    alert('No estás autenticado. Redirigiendo a la página de login.')
-    next('/login')
-  } else {
-    next()
-  }
-})
-  
+    const authStore = useAuthStore()
+    const requiresAuth = to.meta.requireAuth
+    const isAuthenticated = authStore.isAuthenticated
+
+    if (requiresAuth && !isAuthenticated) {
+      alert('No estás autenticado. Redirigiendo a la página de login.')
+      next('/login')
+    } else {
+      next()
+    }
+  })
+
   return Router
 })
