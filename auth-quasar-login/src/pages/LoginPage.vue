@@ -1,16 +1,21 @@
 <template>
-  <q-page class="flex flex-center" style="height: 90vh; overflow: hidden">
+  <q-page class="login-page">
     <div class="login-container">
-      <div class="text-h5 text-center q-mb-xs titleColor">Ingresar</div>
-      <q-form @submit.prevent="authUser" @reset="onReset" class="login-form">
-        <q-input class="q-mb-md" filled v-model="nameUser" label="Usuario">
+      <q-form @submit.prevent="authUser" @reset="onReset" class="login-form shadow-2">
+        <div class="text-h5 text-weight-medium text-center q-mb-sm titleColor">Ingresar</div>
+        <div class="text-caption text-grey-7 text-center q-mb-md">
+          Accede con tu usuario y contraseña
+        </div>
+        <q-separator class="q-mb-lg" />
+        <q-input class="q-mb-md" outlined bg-color="white" v-model="nameUser" label="Usuario">
           <template v-slot:prepend>
             <q-icon name="las la-user" />
           </template>
         </q-input>
         <q-input
-          class="q-mb-md"
-          filled
+          class="q-mb-lg"
+          outlined
+          bg-color="white"
           v-model="passwUser"
           label="Contraseña"
           :type="showPassword ? 'text' : 'password'"
@@ -25,12 +30,32 @@
             />
           </template>
         </q-input>
-        <div class="flex flex-row items-center justify-center q-mt-md q-gutter-md q-mb-xl">
-          <q-btn label="Enviar" type="submit" color="primary" />
-          <q-btn label="Limpiar" type="reset" color="secondary" />
+        <q-separator class="q-mb-lg" />
+        <div class="row q-col-gutter-sm q-mb-md">
+          <div class="col-6">
+            <q-btn
+              label="Enviar"
+              type="submit"
+              color="secondary"
+              :disable="btnSend"
+              class="full-width"
+              unelevated
+            />
+          </div>
+          <div class="col-6">
+            <q-btn
+              label="Limpiar"
+              type="reset"
+              color="primary"
+              :disable="btnReset"
+              class="full-width"
+              flat
+            />
+          </div>
         </div>
-        <div class="flex flex-center q-mt-md">
-          <q-btn color="info">¿Olvidaste tu contraseña?</q-btn>
+        <q-separator class="q-mb-sm" />
+        <div class="flex flex-center">
+          <q-btn color="info" flat no-caps>¿Olvidaste tu contraseña?</q-btn>
         </div>
       </q-form>
     </div>
@@ -46,35 +71,42 @@
 <script setup>
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth'
 import { useAuthStore } from 'src/stores/authStore'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useQuasar } from 'quasar'
+import { useRouter } from 'vue-router'
 
 const useAuth = useAuthStore()
 const $q = useQuasar()
+const router = useRouter()
 let nameUser = ref('')
 let passwUser = ref('')
 
-const authUser = () => {
+const btnSend = computed(() => !nameUser.value.trim() || !passwUser.value.trim())
+const btnReset = computed(() => !nameUser.value.trim() && !passwUser.value.trim())
+
+const authUser = async () => {
   const auth = getAuth()
-  signInWithEmailAndPassword(auth, nameUser.value, passwUser.value)
-    .then(() => {
-      console.log('Usuario autenticado correctamente')
-      useAuth.user = nameUser.value
-      useAuth.isAuthenticated = true
-      $q.notify({
-        type: 'positive',
-        message: 'Usuario autenticado correctamente',
-        icon: 'las la-check-circle',
-      })
+  try {
+    const cred = await signInWithEmailAndPassword(auth, nameUser.value, passwUser.value)
+    console.log('Usuario autenticado correctamente')
+    useAuth.user = nameUser.value
+    useAuth.uidUser = cred.user.uid
+    useAuth.isAuthenticated = true
+    $q.notify({
+      type: 'positive',
+      message: 'Usuario autenticado correctamente',
+      icon: 'las la-check-circle',
+      position: 'top',
     })
-    .catch((error) => {
-      console.log('Error al autenticar al usuario:', error)
-      $q.notify({
-        type: 'negative',
-        message: 'Error al autenticar al usuario',
-        icon: 'las la-times-circle',
-      })
+    router.push({ name: 'post' })
+  } catch (error) {
+    console.log('Error al autenticar al usuario:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Error al autenticar al usuario, por favor verifica tus credenciales',
+      icon: 'las la-times-circle',
     })
+  }
 }
 
 const onReset = () => {
@@ -94,18 +126,36 @@ const togglePasswordVisibility = () => {
 </script>
 
 <style scoped>
+.login-page {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: url('../assets/backgroundLogin.webp');
+  background-size: cover;
+  background-position: center;
+  filter: brightness(1) contrast(1) saturate(0.8);
+}
+
 .login-container {
-  width: 80%;
-  max-width: 450px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .login-form {
-  border: 1px solid rgb(209, 209, 209);
-  border-radius: 10px;
-  padding: 30px 20px;
+  width: min(92vw, 420px);
+  border-radius: 12px;
+  padding: 28px 22px;
+  background: rgba(255, 255, 255, 0.799);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .titleColor {
-  color: #35495e;
+  color: var(--q-dark);
 }
 </style>
