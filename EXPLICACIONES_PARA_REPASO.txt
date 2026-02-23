@@ -1,0 +1,143 @@
+RESUMEN DE EXPLICACIONES (Vue + Quasar + Axios)
+Fecha: 21/02/2026
+
+==================================================
+1) ¿Cómo funciona QLayout en Quasar?
+==================================================
+QLayout es el contenedor principal que define la estructura general de pantalla.
+Organiza estas piezas:
+- QHeader (barra superior)
+- QDrawer (menú lateral)
+- QPageContainer (zona principal de contenido)
+- QFooter (barra inferior)
+
+Qué hace:
+- Calcula espacios disponibles según header/footer/drawers.
+- Hace que QPageContainer ocupe el espacio restante.
+- Permite comportamiento responsive (por ejemplo, drawer en overlay en móvil).
+
+Prop importante: view
+- Controla cómo se posicionan header, footer y drawers (fijos o superpuestos).
+- Ejemplo común: view="lHh Lpr lFf" (depende del layout deseado).
+
+
+==================================================
+2) ¿Qué componente manda contenido a la derecha?
+==================================================
+El componente es QSpace.
+- Se usa especialmente dentro de QToolbar.
+- Todo lo que va antes queda a la izquierda.
+- Todo lo que va después de QSpace se empuja a la derecha.
+
+Ejemplo mental:
+[Botón menú] [Título] [QSpace] [Usuario/acciones]
+
+
+==================================================
+3) ¿Por qué no funcionaba tu QSpace?
+==================================================
+Motivos detectados:
+1. QSpace no está pensado para mostrar contenido dentro. Su función es solo crear espacio flexible.
+2. En tu toolbar, QToolbarTitle ya ocupa espacio flexible, así que también influye en el alineado.
+
+Regla práctica:
+- Deja QSpace vacío: <q-space />
+- Pon el texto/botones a la derecha después de QSpace.
+
+
+==================================================
+4) useDebounce.js explicado paso a paso
+==================================================
+Archivo: composable para retrasar actualizaciones de un valor reactivo.
+
+Estructura:
+- import { ref, watch, onUnmounted } from 'vue'
+
+Función:
+- useDebounce(initialValue = '', delay = 400)
+  Parámetros:
+  - initialValue: valor inicial
+  - delay: milisegundos de espera
+
+Estados reactivos:
+- source: valor inmediato (lo que escribe el usuario)
+- debounced: valor con retraso
+- isDebouncing: indica si está esperando el timeout
+- timeoutId: guarda el timer activo
+
+Lógica:
+- watch(source, ...)
+  - Cada cambio activa isDebouncing = true
+  - Si hay timeout previo, se cancela
+  - Se crea nuevo setTimeout(delay)
+  - Al terminar:
+    - debounced = newValue
+    - isDebouncing = false
+
+Limpieza:
+- onUnmounted(...)
+  - limpia timeout pendiente para evitar fugas/actualizaciones tardías
+
+Uso típico:
+- Búsquedas y filtros para no disparar API en cada tecla.
+
+
+==================================================
+5) ¿Por qué no iniciaba vue-pokemon-game?
+==================================================
+Error inicial:
+- ERR_OSSL_EVP_UNSUPPORTED
+- Causa: proyecto viejo (Vue CLI 4 + Webpack 4) ejecutado con Node 22 (OpenSSL 3).
+
+Qué se hizo para modernizar:
+- Actualización a Vue CLI 5 (webpack 5):
+  - @vue/cli-service
+  - @vue/cli-plugin-babel
+  - @vue/cli-plugin-unit-jest
+- Limpieza de configuración Jest heredada (transform antiguo de vue-jest).
+
+Error posterior detectado:
+- Módulos faltantes de core-js en compilación.
+- Se ajustó la dependencia core-js a una versión más actual.
+
+Nota:
+- Si vuelve a fallar, conviene borrar node_modules + lockfile y reinstalar limpio:
+  1) rm -r node_modules
+  2) borrar yarn.lock
+  3) yarn install
+  4) yarn serve
+
+
+==================================================
+6) Axios: qué es, cómo se instala, para qué sirve, pros y contras
+==================================================
+Qué es:
+- Librería HTTP para navegador y Node.js.
+- Permite hacer GET, POST, PUT, DELETE de forma simple.
+
+Instalación:
+- npm install axios
+- yarn add axios
+- pnpm add axios
+
+Para qué sirve:
+- Consumir APIs REST
+- Enviar formularios/login
+- Configurar baseURL, headers y timeout
+- Usar interceptores para token, errores y logs
+
+Ventajas:
+- API clara y cómoda
+- Interceptores muy útiles
+- Buen manejo de errores y timeout
+- Funciona en frontend y backend
+
+Contras:
+- Dependencia adicional
+- fetch nativo puede bastar en apps simples
+- Puede aumentar tamaño de bundle
+
+
+==================================================
+FIN DEL RESUMEN
+==================================================

@@ -1,0 +1,291 @@
+═══════════════════════════════════════════════════════════════════════════════
+                        AXIOS EN JAVASCRIPT/VUE - GUÍA COMPLETA
+═══════════════════════════════════════════════════════════════════════════════
+
+1. ¿QUÉ ES AXIOS?
+═══════════════════════════════════════════════════════════════════════════════
+
+Axios es una librería HTTP basada en promesas que permite hacer peticiones a
+APIs (GET, POST, PUT, PATCH, DELETE) desde el navegador o desde Node.js.
+
+En frontend se usa mucho con Vue, React y Angular para comunicarse con backend.
+
+CARACTERÍSTICAS CLAVE:
+- API simple y consistente
+- Manejo automático de JSON (parseo de respuesta)
+- Interceptores para modificar requests/responses globalmente
+- Soporte para timeouts
+- Manejo de errores más estructurado
+- Configuración global por instancia
+- Soporte de cancelación de peticiones
+
+
+2. ¿PARA QUÉ SIRVE AXIOS?
+═══════════════════════════════════════════════════════════════════════════════
+
+Sirve para consumir servicios web y APIs REST de forma más cómoda que usar
+directamente XMLHttpRequest o, en ciertos escenarios, más práctico que fetch.
+
+USOS COMUNES:
+- Login y autenticación (enviar credenciales, token JWT)
+- Cargar listas (productos, usuarios, posts)
+- Enviar formularios
+- Subir archivos
+- Integrar APIs externas (clima, pagos, mapas, etc.)
+- Centralizar headers (Authorization, idioma, etc.)
+
+
+3. INSTALACIÓN
+═══════════════════════════════════════════════════════════════════════════════
+
+CON NPM:
+npm install axios
+
+CON YARN:
+yarn add axios
+
+CON PNPM:
+pnpm add axios
+
+
+4. USO BÁSICO
+═══════════════════════════════════════════════════════════════════════════════
+
+IMPORTAR:
+import axios from 'axios'
+
+GET:
+const res = await axios.get('https://api.ejemplo.com/usuarios')
+console.log(res.data) // datos de la API
+
+POST:
+const nuevo = { nombre: 'Nico', email: 'nico@mail.com' }
+const res = await axios.post('https://api.ejemplo.com/usuarios', nuevo)
+console.log(res.data)
+
+PUT/PATCH:
+await axios.put('https://api.ejemplo.com/usuarios/1', { nombre: 'Nuevo Nombre' })
+await axios.patch('https://api.ejemplo.com/usuarios/1', { activo: true })
+
+DELETE:
+await axios.delete('https://api.ejemplo.com/usuarios/1')
+
+QUERY PARAMS:
+await axios.get('https://api.ejemplo.com/usuarios', {
+  params: { page: 1, limit: 10, search: 'nico' }
+})
+
+HEADERS:
+await axios.get('https://api.ejemplo.com/perfil', {
+  headers: { Authorization: 'Bearer TOKEN_AQUI' }
+})
+
+
+5. USO RECOMENDADO EN VUE (INSTANCIA CENTRALIZADA)
+═══════════════════════════════════════════════════════════════════════════════
+
+Conviene crear una instancia para no repetir baseURL, timeout y headers.
+
+// src/services/api.js
+import axios from 'axios'
+
+export const api = axios.create({
+  baseURL: 'https://api.ejemplo.com',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})
+
+// ejemplo de uso en componente/composable/store:
+const res = await api.get('/usuarios')
+console.log(res.data)
+
+VENTAJAS:
+- Código más limpio
+- Configuración en un solo lugar
+- Más fácil de mantener y escalar
+
+
+6. INTERCEPTORES (MUY IMPORTANTE)
+═══════════════════════════════════════════════════════════════════════════════
+
+Los interceptores permiten ejecutar lógica antes de enviar request y después
+de recibir response.
+
+REQUEST INTERCEPTOR (ej: inyectar token):
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+RESPONSE INTERCEPTOR (ej: manejar 401):
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // logout, redirección a login, refrescar token, etc.
+    }
+    return Promise.reject(error)
+  }
+)
+
+
+7. MANEJO DE ERRORES CON AXIOS
+═══════════════════════════════════════════════════════════════════════════════
+
+try {
+  const res = await api.get('/usuarios')
+} catch (error) {
+  if (error.response) {
+    // El servidor respondió con error (4xx, 5xx)
+    console.log(error.response.status)
+    console.log(error.response.data)
+  } else if (error.request) {
+    // Se hizo request pero no hubo respuesta
+    console.log('No hubo respuesta del servidor')
+  } else {
+    // Error al configurar la petición
+    console.log('Error:', error.message)
+  }
+}
+
+TIP:
+Puedes usar `axios.isAxiosError(error)` para validar si el error viene de Axios.
+
+
+8. AXIOS VS FETCH (CUÁNDO CONVIENE CADA UNO)
+═══════════════════════════════════════════════════════════════════════════════
+
+FETCH (nativo del navegador):
+- No requiere instalar librería
+- Es estándar web moderno
+- Muy bueno para casos simples
+- Menos dependencias en el proyecto
+
+AXIOS:
+- Más cómodo para proyectos medianos/grandes
+- Manejo de errores y configuración global más práctico
+- Interceptores incluidos
+- Timeout y transformaciones más directas
+- Mejor DX (developer experience) para equipos
+
+DIFERENCIAS IMPORTANTES:
+- Fetch NO lanza error automático en HTTP 4xx/5xx (hay que validar res.ok).
+- Axios SÍ rechaza la promesa en códigos de error HTTP (por defecto).
+- Fetch requiere más boilerplate para JSON y manejo de errores.
+
+¿CUÁNDO CONVIENE FETCH?
+- Proyectos pequeños
+- Lógica de red mínima
+- Quieres reducir dependencias
+- Entornos donde prefieres solo APIs nativas
+
+¿CUÁNDO CONVIENE AXIOS?
+- Apps con autenticación (JWT/refresh token)
+- Muchas llamadas API y headers repetidos
+- Necesitas interceptores globales
+- Proyecto en crecimiento con varios devs
+- Requieres una capa HTTP centralizada y mantenible
+
+REGLA PRÁCTICA:
+- MVP simple: fetch
+- App real con autenticación/escala: axios
+
+
+9. TEMAS IMPORTANTES ADICIONALES
+═══════════════════════════════════════════════════════════════════════════════
+
+9.1 TIMEOUTS
+------------------------------
+Evita peticiones colgadas indefinidamente:
+const api = axios.create({ timeout: 10000 }) // 10 segundos
+
+9.2 CANCELACIÓN DE REQUESTS
+------------------------------
+Útil para búsqueda en tiempo real o cambio de ruta rápido.
+
+const controller = new AbortController()
+api.get('/usuarios', { signal: controller.signal })
+controller.abort()
+
+9.3 SUBIDA DE ARCHIVOS
+------------------------------
+const formData = new FormData()
+formData.append('file', archivo)
+await api.post('/upload', formData, {
+  headers: { 'Content-Type': 'multipart/form-data' }
+})
+
+9.4 CREDENCIALES Y COOKIES
+------------------------------
+Si usas cookies/sesión entre dominios:
+await api.get('/perfil', { withCredentials: true })
+
+9.5 SEGURIDAD BÁSICA
+------------------------------
+- No hardcodear tokens en código fuente
+- Usar HTTPS siempre
+- Manejar bien expiración de tokens
+- Sanitizar y validar datos en backend (no solo frontend)
+- Evitar mostrar mensajes de error sensibles al usuario final
+
+9.6 REINTENTOS Y RESILIENCIA
+------------------------------
+Axios no trae reintentos automáticos por defecto. Se puede agregar con:
+- axios-retry
+- lógica personalizada en interceptores
+
+9.7 BASE URL POR ENTORNO
+------------------------------
+Usa variables de entorno para desarrollo/staging/producción:
+- Vite: import.meta.env.VITE_API_URL
+- Vue CLI: process.env.VUE_APP_API_URL
+
+
+10. EJEMPLO DE ESTRUCTURA LIMPIA EN VUE
+═══════════════════════════════════════════════════════════════════════════════
+
+src/
+  services/
+    api.js               // instancia axios + interceptores
+    authService.js       // login, refresh, logout
+    userService.js       // operaciones de usuario
+  stores/
+  views/
+
+EJEMPLO authService.js:
+import { api } from './api'
+
+export const login = (credentials) => api.post('/auth/login', credentials)
+export const getProfile = () => api.get('/auth/me')
+
+
+11. RESUMEN RÁPIDO
+═══════════════════════════════════════════════════════════════════════════════
+
+- Axios es una librería HTTP muy usada para consumir APIs.
+- Es especialmente útil en proyectos medianos/grandes.
+- Destaca por sus interceptores, configuración global y manejo de errores.
+- Fetch es excelente para casos simples y sin dependencias.
+- En apps Vue reales con auth y múltiples endpoints, Axios suele ahorrar tiempo
+  y evitar duplicación.
+
+
+12. MINI CHECKLIST DE BUENAS PRÁCTICAS
+═══════════════════════════════════════════════════════════════════════════════
+
+[ ] Crear una sola instancia Axios (no repetir configuración)
+[ ] Centralizar interceptores (token + manejo de 401)
+[ ] Definir timeout
+[ ] Manejar errores de red y de negocio por separado
+[ ] Usar variables de entorno para baseURL
+[ ] Evitar lógica HTTP dispersa en muchos componentes
+[ ] Usar servicios/composables para encapsular llamadas API
+
+
+FIN
+═══════════════════════════════════════════════════════════════════════════════

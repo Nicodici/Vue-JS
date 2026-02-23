@@ -1,0 +1,124 @@
+REF vs SHALLOWREF (Vue 3) - REPASO RAPIDO
+=========================================
+
+1) IDEA CLAVE
+-------------
+- ref: reactividad profunda (deep) para objetos/arrays.
+- shallowRef: reactividad superficial (shallow), solo rastrea cambios de .value.
+
+En otras palabras:
+- ref observa cambios internos + cambio de referencia.
+- shallowRef observa solo cambio de referencia.
+
+
+2) COMPORTAMIENTO PRACTICO
+--------------------------
+ref
+---
+const state = ref({ user: { name: 'Nico' } })
+
+- state.value.user.name = 'Luis'  -> SI actualiza vista
+- state.value = { user: { name: 'Ana' } } -> SI actualiza vista
+
+shallowRef
+----------
+const state = shallowRef({ user: { name: 'Nico' } })
+
+- state.value.user.name = 'Luis'  -> NO actualiza por si solo
+- state.value = { user: { name: 'Ana' } } -> SI actualiza vista
+
+
+3) DIFERENCIA TECNICA (SIN HUMO)
+--------------------------------
+- ref convierte objetos/arrays en estructuras reactivas profundas (proxys anidados).
+- shallowRef NO proxifica profundamente el contenido.
+- shallowRef solo notifica cuando cambia state.value completo.
+
+
+4) CUANDO USAR CADA UNO
+-----------------------
+Usa ref cuando:
+- Quieres reactividad normal de UI/formularios.
+- Modificas propiedades internas y esperas render inmediato.
+- Tu estado es sencillo y quieres comodidad.
+
+Usa shallowRef cuando:
+- Guardas objetos grandes (mejor control/performance).
+- Guardas instancias externas (Chart, Map, Socket, clases).
+- Guardas componentes dinámicos y comparas por identidad.
+- Solo te interesa reemplazar el objeto completo.
+
+
+5) TU CASO (COMPONENTES DINAMICOS)
+----------------------------------
+Si haces comparaciones como:
+layout.value === ListLayout
+
+shallowRef suele ser mas seguro para conservar esa identidad de referencia,
+porque no intenta hacer reactividad profunda sobre el componente guardado.
+
+
+6) MINI TABLA (MEMORIZACION RAPIDA)
+-----------------------------------
+| Tema                           | ref                         | shallowRef                    |
+|-------------------------------|-----------------------------|-------------------------------|
+| Reacciona a cambios internos  | Si                          | No                            |
+| Reacciona a cambio de .value  | Si                          | Si                            |
+| Reactividad profunda          | Si                          | No                            |
+| Ideal para formularios/UI     | Si                          | A veces                       |
+| Ideal para instancias externas| A veces                     | Si                            |
+| Comparacion por referencia    | Puede complicarse en casos  | Mas predecible                |
+
+
+7) EJERCICIOS CORTOS (2 MIN)
+----------------------------
+Ejercicio 1: Predice salida/render
+----------------------------------
+A)
+const a = ref({ count: 0 })
+a.value.count++
+
+Pregunta: ¿se actualiza la vista?
+Respuesta esperada: SI
+
+B)
+const b = shallowRef({ count: 0 })
+b.value.count++
+
+Pregunta: ¿se actualiza la vista?
+Respuesta esperada: NO
+
+C)
+const b = shallowRef({ count: 0 })
+b.value = { count: b.value.count + 1 }
+
+Pregunta: ¿se actualiza la vista?
+Respuesta esperada: SI
+
+
+Ejercicio 2: Elige la mejor opcion
+----------------------------------
+Caso: guardas una instancia de libreria de mapas (objeto complejo externo).
+- Opcion 1: ref
+- Opcion 2: shallowRef
+Respuesta esperada: shallowRef
+
+
+Ejercicio 3: Completa
+---------------------
+"Si necesito que Vue detecte cambios internos en propiedades anidadas,
+normalmente debo usar ________"
+Respuesta: ref
+
+"Si solo quiero reaccionar cuando reemplazo el objeto completo,
+normalmente debo usar ________"
+Respuesta: shallowRef
+
+
+8) REGLA MENTAL FINAL
+---------------------
+- Si tocas "dentro" del objeto y quieres que renderice: ref.
+- Si cambias el objeto completo o guardas algo externo: shallowRef.
+
+
+FIN
