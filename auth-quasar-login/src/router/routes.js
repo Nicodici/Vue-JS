@@ -1,10 +1,5 @@
 import HomePage from 'src/pages/HomePage.vue'
-import ListPostPage from 'src/pages/ListPostPage.vue'
-import LoginPage from 'src/pages/LoginPage.vue'
 import MainLayout from 'src/layouts/MainLayout.vue'
-import RegisterPage from 'src/pages/RegisterPage.vue'
-import NewPostPage from 'src/pages/NewPostPage.vue'
-import ProfileUserPage from 'src/pages/ProfileUserPage.vue'
 
 const routes = [
   {
@@ -12,20 +7,43 @@ const routes = [
     component: MainLayout,
     children: [
       { path: '', name: 'home', component: HomePage, meta: { requireAuth: false } },
-      { path: '/post', name: 'post', component: ListPostPage, meta: { requireAuth: true } },
-      { path: '/login', name: 'login', component: LoginPage, meta: { requireAuth: false } },
+      {
+        path: '/post',
+        name: 'post',
+        component: () => import('src/pages/ListPostPage.vue'),
+        meta: { requireAuth: true },
+      },
+      {
+        path: '/login',
+        name: 'login',
+        component: () => import('src/pages/LoginPage.vue'),
+        meta: { requireAuth: false },
+      },
       {
         path: '/register',
         name: 'register',
-        component: RegisterPage,
+        component: () => import('src/page s/RegisterPage.vue'),
         meta: { requireAuth: false },
       },
-      { path: '/newPost', name: 'newPost', component: NewPostPage, meta: { requireAuth: true } },
+      {
+        path: '/newPost',
+        name: 'newPost',
+        component: () => import('src/pages/NewPostPage.vue'),
+        meta: { requireAuth: true },
+      },
       {
         path: '/profile',
         name: 'profile',
-        component: ProfileUserPage,
-        meta: {requireAuth: true},
+        component: () => import('src/pages/ProfileUserPage.vue'),
+        meta: { requireAuth: true },
+      },
+
+      //La diferencia entre component por nombre y component por funcion es que el segundo hace que el componente se cargue solo cuando se accede a esa ruta, lo que mejora el rendimiento inicial de la aplicación al no cargar componentes innecesarios desde el principio.
+      {
+        path: '/pokemon',
+        name: 'pokemon',
+        component: () => import('src/pages/PokemonPage.vue'),
+        meta: { requireAuth: true },
       },
     ],
   },

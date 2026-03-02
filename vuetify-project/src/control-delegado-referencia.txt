@@ -1,0 +1,215 @@
+GUÍA: CONTROL DELEGADO POR REFERENCIA (ref de padre a hijo en Vue 3)
+
+============================================================
+1) ¿QUÉ ES EL CONTROL DELEGADO POR REFERENCIA?
+============================================================
+
+Es una técnica donde el componente padre obtiene una referencia directa al componente hijo
+usando `ref` en el template, para poder ejecutar métodos del hijo desde el padre.
+
+Idea clave:
+- El padre NO modifica directamente el estado interno del hijo.
+- El padre llama “acciones públicas” del hijo (métodos expuestos).
+
+Ejemplo mental:
+- Padre: "Hijo, abre tu modal"
+- Hijo: implementa `abrirModal()` y lo expone.
+
+
+============================================================
+2) ¿CUÁNDO USARLO?
+============================================================
+
+Úsalo cuando necesites disparar acciones imperativas en el hijo, por ejemplo:
+- abrir/cerrar un diálogo del hijo
+- resetear un formulario hijo
+- enfocar un input interno del hijo
+- ejecutar una animación del hijo
+
+Evítalo como primera opción si puedes resolverlo con:
+- `props` + `emit` (comunicación declarativa)
+- estado global (Pinia) para coordinación amplia
+
+
+============================================================
+3) PATRÓN CORRECTO EN VUE 3 (script setup)
+============================================================
+
+IMPORTANTE:
+- Si el hijo usa `<script setup>`, debes usar `defineExpose()` para hacer públicos
+	los métodos/propiedades que el padre podrá usar.
+
+
+--------------------------------------------
+Hijo: `ChildPanel.vue`
+--------------------------------------------
+
+<template>
+	<div>
+		<p v-if="abierto">Panel abierto</p>
+		<p v-else>Panel cerrado</p>
+	</div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const abierto = ref(false)
+
+function abrir() {
+	abierto.value = true
+}
+
+function cerrar() {
+	abierto.value = false
+}
+
+function alternar() {
+	abierto.value = !abierto.value
+}
+
+// Exponemos SOLO la API pública del hijo
+defineExpose({
+	abrir,
+	cerrar,
+	alternar
+})
+</script>
+
+
+--------------------------------------------
+Padre: `ParentView.vue`
+--------------------------------------------
+
+<template>
+	<div>
+		<button @click="abrirDesdePadre">Abrir hijo</button>
+		<button @click="cerrarDesdePadre">Cerrar hijo</button>
+		<button @click="toggleDesdePadre">Alternar hijo</button>
+
+		<!-- ref del componente hijo -->
+		<ChildPanel ref="childRef" />
+	</div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import ChildPanel from './ChildPanel.vue'
+
+const childRef = ref(null)
+
+function abrirDesdePadre() {
+	childRef.value?.abrir()
+}
+
+function cerrarDesdePadre() {
+	childRef.value?.cerrar()
+}
+
+function toggleDesdePadre() {
+	childRef.value?.alternar()
+}
+</script>
+
+
+============================================================
+4) ¿POR QUÉ `?.` (optional chaining)?
+============================================================
+
+Porque en el primer render la referencia puede ser `null` hasta que el hijo monte.
+Con `childRef.value?.metodo()` evitas errores si todavía no existe.
+
+
+============================================================
+5) CICLO DE VIDA Y MOMENTO DE USO
+============================================================
+
+Si necesitas llamar al método automáticamente al montar el padre:
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import ChildPanel from './ChildPanel.vue'
+
+const childRef = ref(null)
+
+onMounted(() => {
+	childRef.value?.abrir()
+})
+</script>
+
+
+============================================================
+6) TIPADO (recomendado con TypeScript)
+============================================================
+
+En TS puedes tipar la referencia para autocompletado y seguridad:
+
+type ChildApi = {
+	abrir: () => void
+	cerrar: () => void
+	alternar: () => void
+}
+
+const childRef = ref<ChildApi | null>(null)
+
+
+============================================================
+7) BUENAS PRÁCTICAS
+============================================================
+
+1. Exponer una API mínima
+	 - con `defineExpose` muestra solo métodos necesarios.
+
+2. Encapsular estado interno
+	 - el padre invoca acciones; no “mete mano” al estado privado del hijo.
+
+3. Preferir patrón declarativo cuando sea posible
+	 - usa `props`/`emit` para flujo normal de datos.
+
+4. Usar nombres de métodos semánticos
+	 - `abrirModal`, `resetFormulario`, `focusInput`.
+
+5. Evitar acoplamiento excesivo
+	 - si el padre llama demasiadas funciones del hijo, probablemente el diseño necesita refactor.
+
+
+============================================================
+8) ERRORES COMUNES
+============================================================
+
+Error 1: “No funciona el método del hijo”
+- Causa: olvidaste `defineExpose` en `<script setup>`.
+
+Error 2: “Cannot read properties of null”
+- Causa: llamaste al método antes de que el hijo monte.
+- Solución: usar `?.` o `onMounted`.
+
+Error 3: usar refs para todo
+- Consecuencia: componentes muy acoplados y difíciles de mantener.
+
+
+============================================================
+9) REGLA RÁPIDA PARA EXÁMENES / REPASO
+============================================================
+
+Si la pregunta es:
+“¿Cómo hace un padre para ejecutar una acción específica de un hijo?”
+
+Respuesta corta:
+1) En el hijo defines método.
+2) En el hijo lo expones con `defineExpose`.
+3) En el padre creas `const childRef = ref(null)`.
+4) En template: `<Hijo ref="childRef" />`.
+5) Ejecutas `childRef.value?.metodo()`.
+
+
+============================================================
+10) COMPARACIÓN RÁPIDA
+============================================================
+
+- Props: padre -> hijo (datos)
+- Emit: hijo -> padre (eventos)
+- Ref de componente: padre -> hijo (acciones imperativas puntuales)
+
+
+FIN

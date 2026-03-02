@@ -38,6 +38,9 @@
           v-if="useAuth.isAuthenticated"
           ><q-icon name="las la-user" class="q-mr-xs" size="sm" />Perfil</RouterLink
         >
+        <RouterLink :to="{ name: 'pokemon' }" class="text-white q-mr-xl no-underline"
+          ><q-icon name="las la-dragon" class="q-mr-xs" size="sm" />Pokemons</RouterLink
+        >
         <q-space />
         <RouterLink
           v-if="useAuth.isAuthenticated"
@@ -66,7 +69,7 @@ a {
   text-decoration: none;
   font-size: 15px;
 }
-a:hover{
+a:hover {
   text-decoration: underline;
 }
 </style>

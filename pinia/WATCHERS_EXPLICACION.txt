@@ -1,0 +1,190 @@
+WATCHERS EN VUE 3 (EXPLICACIÓN PRÁCTICA)
+
+1) ¿Qué son los watchers?
+Un watcher (observador) en Vue es una forma de “vigilar” cambios en un estado reactivo
+(ref, reactive, computed o una propiedad específica) y ejecutar código cuando ese cambio ocurre.
+
+En otras palabras:
+- computed => calcula y devuelve un valor derivado.
+- watcher => reacciona a cambios para ejecutar efectos secundarios (side effects).
+
+--------------------------------------------------
+
+2) ¿Cuál es su función principal?
+Los watchers se usan cuando necesitas hacer algo al cambiar un dato, por ejemplo:
+- Llamar una API cuando cambia un filtro.
+- Guardar datos en localStorage.
+- Validar formularios mientras el usuario escribe.
+- Sincronizar estado con otra fuente externa.
+- Ejecutar lógica asíncrona (await, fetch, etc).
+
+Regla rápida:
+Si necesitas “devolver un valor”, usa computed.
+Si necesitas “hacer una acción”, usa watcher.
+
+--------------------------------------------------
+
+3) ¿Cómo se usan? (Composition API)
+Importas watch desde Vue y defines:
+- Qué quieres observar (source).
+- Qué función se ejecuta al cambiar (callback).
+- Opciones adicionales (immediate, deep, flush).
+
+Sintaxis base:
+
+import { ref, watch } from 'vue'
+
+const contador = ref(0)
+
+watch(contador, (nuevoValor, valorAnterior) => {
+  console.log('Cambió de', valorAnterior, 'a', nuevoValor)
+})
+
+Parámetros del callback:
+- nuevoValor: valor actual después del cambio.
+- valorAnterior: valor previo.
+
+--------------------------------------------------
+
+4) Ejemplos prácticos
+
+EJEMPLO A: Watch simple con ref
+
+import { ref, watch } from 'vue'
+
+const busqueda = ref('')
+
+watch(busqueda, (nuevo) => {
+  console.log('Nuevo texto de búsqueda:', nuevo)
+})
+
+Uso típico: reaccionar al input del usuario.
+
+
+EJEMPLO B: Watch con llamada async a API
+
+import { ref, watch } from 'vue'
+
+const categoria = ref('all')
+const productos = ref([])
+
+watch(categoria, async (nuevaCategoria) => {
+  const res = await fetch(`https://api.ejemplo.com/productos?cat=${nuevaCategoria}`)
+  productos.value = await res.json()
+})
+
+Uso típico: recargar datos al cambiar filtros.
+
+
+EJEMPLO C: Watch con opción immediate
+Se ejecuta una vez al montar y luego cada vez que cambia.
+
+watch(
+  categoria,
+  async (nuevaCategoria) => {
+    // Se ejecuta al iniciar y al cambiar categoria
+  },
+  { immediate: true }
+)
+
+
+EJEMPLO D: Watch de varias fuentes
+
+import { ref, watch } from 'vue'
+
+const nombre = ref('Nico')
+const apellido = ref('Pérez')
+
+watch([nombre, apellido], ([nuevoNombre, nuevoApellido], [oldNombre, oldApellido]) => {
+  console.log('Antes:', oldNombre, oldApellido)
+  console.log('Ahora:', nuevoNombre, nuevoApellido)
+})
+
+Uso típico: cuando una acción depende de múltiples estados.
+
+
+EJEMPLO E: Watch en objetos anidados (deep)
+
+import { reactive, watch } from 'vue'
+
+const usuario = reactive({
+  perfil: {
+    edad: 20,
+    ciudad: 'Madrid'
+  }
+})
+
+watch(
+  () => usuario.perfil,
+  (nuevoPerfil) => {
+    console.log('Perfil actualizado:', nuevoPerfil)
+  },
+  { deep: true }
+)
+
+Nota: deep puede ser costoso en objetos muy grandes.
+
+
+EJEMPLO F: Limpiar efectos con onCleanup
+Útil para cancelar peticiones anteriores cuando el valor cambia rápido.
+
+import { ref, watch } from 'vue'
+
+const termino = ref('')
+
+watch(termino, (nuevoTermino, _, onCleanup) => {
+  const controller = new AbortController()
+
+  fetch(`/api/search?q=${nuevoTermino}`, { signal: controller.signal })
+    .then(r => r.json())
+    .then(data => console.log(data))
+
+  onCleanup(() => {
+    controller.abort()
+  })
+})
+
+--------------------------------------------------
+
+5) watchEffect vs watch
+
+watch:
+- Control total sobre qué observar.
+- Recibes nuevo y viejo valor.
+- Ideal cuando necesitas precisión.
+
+watchEffect:
+- Detecta automáticamente dependencias usadas dentro del callback.
+- Se ejecuta inmediatamente.
+- No recibe oldValue/newValue de forma directa.
+
+Ejemplo watchEffect:
+
+import { ref, watchEffect } from 'vue'
+
+const precio = ref(100)
+const cantidad = ref(2)
+
+watchEffect(() => {
+  console.log('Total:', precio.value * cantidad.value)
+})
+
+--------------------------------------------------
+
+6) Buenas prácticas
+- Usa computed para derivar datos, no watcher.
+- Usa watcher para efectos secundarios (API, almacenamiento, logs).
+- Evita deep: true en estructuras enormes si no es necesario.
+- Si hay operaciones async, considera cleanup para evitar resultados obsoletos.
+- Mantén cada watcher con una responsabilidad clara.
+
+--------------------------------------------------
+
+7) Resumen rápido
+- Watcher = reaccionar a cambios.
+- Ideal para side effects.
+- API principal: watch(source, callback, options).
+- Opciones comunes: immediate, deep.
+- Alternativa automática: watchEffect.
+
+Fin.

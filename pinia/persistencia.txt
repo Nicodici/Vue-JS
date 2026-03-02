@@ -1,0 +1,30 @@
+Como podemos notar, cuando refrescamos la pagina, el estado de nuestro store se pierde. Para solucionar esto, podemos utilizar un plugin de Pinia llamado `pinia-plugin-persistedstate`. Este plugin nos permite guardar el estado de nuestro store en el almacenamiento local del navegador, lo que significa que incluso después de refrescar la página, el estado se mantendrá.
+
+Pasos:
+1- Instalamos pinia : npm install pinia
+2- importamos los modulos necesarios en el main.js 
+import { createPinia } from 'pinia'
+const pinia = createPinia()
+3- Instalamos el plugin de persistencia: npm install pinia-plugin-persistedstate
+4- Importamos el plugin en nuestro main.js y lo usamos con Pinia:
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+pinia.use(piniaPluginPersistedstate)
+
+Ejemplo de configuracion del main:
+import './assets/main.css'
+
+import { createApp } from 'vue'
+import { createPinia } from 'pinia'
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+
+import App from './App.vue'
+import router from './router'
+
+const app = createApp(App)
+
+const pinia = createPinia()
+pinia.use(piniaPluginPersistedstate)
+
+app.use(pinia).use(router)
+
+app.mount('#app')

@@ -16,7 +16,14 @@
   <div class="transitionGroup">
     <h1>Transiciones grupales</h1>
     <TransitionGroup name="listNotes" tag="ul">
-      <li v-for="(note, index) in notes" :key="index" ><OhVueIcon name="bi-balloon-fill" hover="true" animation="float" title="aca se muestra una descripcion"/>{{ note }}</li>
+      <li v-for="(note, index) in notes" :key="index">
+        <OhVueIcon
+          name="bi-balloon-fill"
+          hover="true"
+          animation="float"
+          title="aca se muestra una descripcion"
+        />{{ note }}
+      </li>
     </TransitionGroup>
     <input type="text" placeholder="Escribe algo..." v-model="noteText" />
     <button @click="addNote">Añadir</button>
@@ -38,7 +45,7 @@ const addNote = () => {
 </script>
 
 <style scoped>
-li{
+li {
   list-style-type: none;
 }
 .containerAnimation {
