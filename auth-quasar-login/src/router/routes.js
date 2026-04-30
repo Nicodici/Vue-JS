@@ -22,7 +22,7 @@ const routes = [
       {
         path: '/register',
         name: 'register',
-        component: () => import('src/page s/RegisterPage.vue'),
+        component: () => import('src/pages/RegisterPage.vue'),
         meta: { requireAuth: false },
       },
       {
@@ -44,6 +44,12 @@ const routes = [
         name: 'pokemon',
         component: () => import('src/pages/PokemonPage.vue'),
         meta: { requireAuth: true },
+      },
+      {
+        path: '/valentina-fotos',
+        name: 'valentina-fotos',
+        component: () => import('src/pages/ValentinaFotos.vue'),
+        meta: { requireAuth: false },
       },
     ],
   },

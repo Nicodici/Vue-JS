@@ -1,0 +1,46 @@
+Descripción del script `download-valentina.cjs`
+
+1) Qué hace
+- Descarga imágenes numeradas desde 2278 hasta 2499 desde la URL base:
+  https://imetf.s3.amazonaws.com/Imagenes/8113/35988/Catalogos/39262/DSC0{N}.JPG
+- Guarda cada archivo como `DSC0{N}.JPG` en `public/images/valentina`.
+
+2) Formato y motivo .cjs
+- Tu proyecto tiene `"type": "module"` en `package.json`, por eso Node trata los `.js` como ES modules.
+- El script usa `require()` y APIs de CommonJS; por eso se creó la versión `.cjs` para ejecutarse directamente con Node.
+
+3) Estructura principal
+- Variables:
+  - `start` y `end`: rango de números a descargar.
+  - `outDir`: carpeta destino (se crea si no existe).
+- Función `downloadOne(i)`: realiza una petición HTTPS al enlace y escribe la respuesta en disco usando streams (seguro para archivos grandes).
+- Bucle principal: itera `i` desde `start` hasta `end`, llama `downloadOne(i)` y muestra `ok` o `fail` según el resultado.
+
+4) Cómo ejecutarlo
+- Desde la raíz del proyecto (Windows PowerShell o terminal):
+  node scripts/download-valentina.cjs
+- Salida por defecto: `public/images/valentina`.
+
+5) Manejo de errores observado
+- El script informa `HTTP 403` para algunos números (p. ej. 2324, 2345, 2412...). Eso significa que el servidor niega el acceso a esos recursos.
+- 403 puede venir por permisos, hotlinking protegido o inexistencia con restricción. Reintentar no garantiza éxito.
+
+6) Posibles mejoras
+- Reintentos con backoff: intentar N veces antes de marcar fail.
+- Paralelizar con un pool (p. ej. 5-10 descargas simultáneas) para acelerar la descarga.
+- Registrar un archivo `log.txt` con estado de cada URL descargada (ok/fail + código HTTP).
+- Validar tamaño mínimo del archivo o MIME para detectar respuestas HTML de error.
+
+7) Cómo cambiar rango o carpeta
+- Edita `start` y `end` en la parte superior del archivo.
+- Cambia `outDir` si quieres otra carpeta dentro del proyecto.
+
+8) Nota de seguridad y ética
+- Asegúrate de tener permiso para descargar y almacenar estas imágenes.
+- Respeta las políticas del servidor y evita automatizar solicitudes con demasiada concurrencia que puedan afectar el servicio.
+
+Si quieres, puedo:
+- Añadir reintentos automáticos sólo para los fallidos y generar un `failed.txt` con las URLs que dieron 403.
+- Crear una versión paralela (con control de concurrencia) y un comando npm para ejecutarla.
+
+Última actualización: se ejecutó `download-valentina.cjs` y algunos archivos devolvieron 403; el resto se guardó en `public/images/valentina`.
