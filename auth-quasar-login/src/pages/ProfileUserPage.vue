@@ -56,30 +56,30 @@
     <StaticElement name="divider_3" tag="hr" />
     <ButtonElement
       name="reset_password"
-      button-label="Send email to reset password"
+      button-label="Enviar enlace de restablecimiento"
       button-type="anchor"
       label="Password"
-      description="To change your password, we need to send a reset link to your email address."
+      description="Seleccionar el botón enviará un correo para resetear tu password."
     />
     <ButtonElement
       name="close_sessions"
-      button-label="Sign out"
+      button-label="Cerrar sesión actual"
       button-type="anchor"
-      label="Active sessions"
-      description="Selecting \&#34;Sign out\&#34; will sign you out from all devices except this one. This can take up to 10 minutes."
+      label="Conexión"
+      description="Se cerrará tu sesión actual en este dispositivo, pero permanecerá activa en otros dispositivos donde hayas iniciado sesión."
     />
     <ButtonElement
       name="delete_account"
-      button-label="Sign out"
+      button-label="Eliminar cuenta"
       button-type="anchor"
-      description="Permanently delete your mydomain.com account."
-      label="Delete account"
+      description="Se borrará permanentemente tu cuenta."
+
     />
     <StaticElement name="divider_4" tag="hr" />
   </Vueform>
 </template>
 
-<!-- 
+<!--
 <template>
   <q-page>
     <div class="profile-container bg-light-blue-1 shadow-md">
@@ -103,6 +103,7 @@ import { auth, db } from 'src/boot/firebase'
 import { onMounted, ref } from 'vue'
 
 const useAuth = useAuthStore()
+
 const profile = ref({
   first_name: '',
   last_name: '',
@@ -119,6 +120,7 @@ const loadProfile = async () => {
   try {
     // Obtener el UID del usuario autenticado en el store o directamente desde Firebase Auth
     const idUser = useAuth.uidUser || auth.currentUser?.uid
+    console.log('UID del usuario autenticado:', idUser)
 
     // Obtiene los datos del perfil desde Firestore usando el UID
     const userDataProfile = await getDoc(doc(db, 'users', idUser))
@@ -139,6 +141,7 @@ const loadProfile = async () => {
 }
 
 onMounted(loadProfile)
+
 </script>
 
 <style scoped>

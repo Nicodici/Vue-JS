@@ -12,16 +12,15 @@ export const usePokemonStore = defineStore('pokemon', () => {
     errorMessage.value = ''
 
     try {
-      // 1. Obtenemos la lista básica (name y url)
-      const response = await api.get('/pokemon?limit=151') // Limitamos para no saturar
+      const response = await api.get('/pokemon?limit=151')
       const basicList = response.data.results
 
-      // 2. Mapeamos la lista para obtener el detalle de cada uno
+      // Mapear la lista para obtener el detalle de cada uno
       // Usamos Promise.all para que las peticiones se hagan en paralelo y sea rápido
       const detailedPokemons = await Promise.all(
         basicList.map(async (p) => {
           const detail = await api.get(p.url) // Usamos la URL que ya viene en el resultado
-
+          console.log("Pokemons obtenidos")
           return {
             id: detail.data.id,
             name: detail.data.name,
