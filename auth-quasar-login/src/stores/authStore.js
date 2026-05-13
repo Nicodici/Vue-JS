@@ -16,23 +16,30 @@ export const useAuthStore = defineStore(
 
     // Función para obtener el usuario logueado desde Firebase
     const fetchLoggedInUser = () => {
-      onAuthStateChanged(auth, (firebaseUser) => {
-        if (firebaseUser) {
-          user.value = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
+      try {
+        onAuthStateChanged(auth, (firebaseUser) => {
+          console.log('firebaseUser: ', firebaseUser)
+          if (firebaseUser) {
+            user.value = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+            }
+            uidUser.value = firebaseUser.uid
+            isAuthenticated.value = true
+          } else {
+            user.value = null
+            uidUser.value = null
+            isAuthenticated.value = false
           }
-          uidUser.value = firebaseUser.uid
-          isAuthenticated.value = true
-        } else {
-          user.value = null
-          uidUser.value = null
-          isAuthenticated.value = false
-        }
-      })
+          console.log("usuario logueado",user);
+        })
+      } catch (error) {
+        console.error('Error al obtener el usuario logueado:', error)
+      }
     }
 
+    fetchLoggedInUser()
     const logout = async () => {
       user.value = null
       isAuthenticated.value = false

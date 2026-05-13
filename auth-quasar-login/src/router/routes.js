@@ -45,6 +45,12 @@ const routes = [
         component: () => import('src/pages/PokemonPage.vue'),
         meta: { requireAuth: true },
       },
+      {
+        path: '/rnas',
+        name: 'rnas',
+        component: () => import('src/pages/ListRnas.vue'),
+        meta: { requireAuth: false },
+      },
     ],
   },
   // Error 404

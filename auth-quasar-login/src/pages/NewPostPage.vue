@@ -62,12 +62,11 @@ const createPost = async () => {
       })
       await router.push({ name: 'login' })
     }
-
     const newPost = {
       title: title.value,
       content: content.value,
-      author: useAuthStore.user,
-      userId: useAuthStore.uidUser,
+      author: userAuth.user.email,
+      userId: userAuth.uidUser,
       createAt: serverTimestamp(),
     }
     console.log(newPost)
@@ -75,8 +74,8 @@ const createPost = async () => {
     await addDoc(collection(db, 'posts'), {
       title: title.value,
       content: content.value,
-      author: useAuthStore.user,
-      userId: useAuthStore.user.uid,
+      author: userAuth.user,
+      userId: userAuth.user.uid,
       createdAt: newPost.createAt,
     })
 
@@ -89,7 +88,6 @@ const createPost = async () => {
       icon: 'las la-check-circle',
       position: 'top-right',
     })
-    router.push('/')
   } catch (error) {
     console.error('Error creando el post:', error)
     $q.notify({
