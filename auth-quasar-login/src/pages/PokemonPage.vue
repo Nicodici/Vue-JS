@@ -20,12 +20,12 @@
 <script setup>
 import { onMounted } from 'vue'
 import CardComponent from 'src/components/CardComponent.vue'
-import { usePokemonStore } from 'src/stores/pokemon.js'
+import { usePokemonStore } from 'src/stores/pokemon'
 
 const pokemonStore = usePokemonStore()
 
 onMounted(async () => {
-  await pokemonStore.fetchPokemons()
+  await pokemonStore.getPokemons()
 })
 </script>
 

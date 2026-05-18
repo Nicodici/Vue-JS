@@ -78,8 +78,8 @@ import { useRouter } from 'vue-router'
 const useAuth = useAuthStore()
 const $q = useQuasar()
 const router = useRouter()
-let nameUser = ref('')
-let passwUser = ref('')
+const nameUser = ref('')
+const passwUser = ref('')
 
 const btnSend = computed(() => !nameUser.value.trim() || !passwUser.value.trim())
 const btnReset = computed(() => !nameUser.value.trim() && !passwUser.value.trim())

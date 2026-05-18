@@ -3,8 +3,18 @@ import globals from 'globals'
 import pluginVue from 'eslint-plugin-vue'
 import pluginQuasar from '@quasar/app-vite/eslint'
 import prettierSkipFormatting from '@vue/eslint-config-prettier/skip-formatting'
+import {
+  configureVueProject,
+  defineConfigWithVueTs,
+  vueTsConfigs,
+} from '@vue/eslint-config-typescript'
 
-export default [
+configureVueProject({
+  // Permitimos JS temporalmente para una migración incremental a TS.
+  scriptLangs: ['ts', 'js'],
+})
+
+export default defineConfigWithVueTs(
   {
     /**
      * Ignore the following files.
@@ -33,6 +43,7 @@ export default [
    *   -> Above, plus rules to enforce subjective community defaults to ensure consistency.
    */
   ...pluginVue.configs['flat/essential'],
+  vueTsConfigs.recommended,
 
   {
     languageOptions: {
@@ -70,4 +81,4 @@ export default [
   },
 
   prettierSkipFormatting,
-]
+)

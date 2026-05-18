@@ -43,12 +43,6 @@ const routes = [
         path: '/pokemon',
         name: 'pokemon',
         component: () => import('src/pages/PokemonPage.vue'),
-        meta: { requireAuth: true },
-      },
-      {
-        path: '/valentina-fotos',
-        name: 'valentina-fotos',
-        component: () => import('src/pages/ValentinaFotos.vue'),
         meta: { requireAuth: false },
       },
     ],
