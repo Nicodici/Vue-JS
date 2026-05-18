@@ -5,6 +5,7 @@ import type { Pokemon } from 'src/services/servicePokemon'
 
 export const usePokemonStore = defineStore('pokemon', () => {
   const pokemons = ref<Pokemon[]>([])
+  const selectedPokemon = ref<string | null>(null)
   const loading = ref(false)
   const errorMessage = ref('')
 
@@ -34,5 +35,18 @@ export const usePokemonStore = defineStore('pokemon', () => {
     )
   })
 
-  return { pokemons, loading, errorMessage, getPokemons, searchPokemon, filteredPokemons }
+  const setSelectedPokemon = (pokemonName: string) => {
+    selectedPokemon.value = pokemonName
+  }
+
+  return {
+    pokemons,
+    selectedPokemon,
+    loading,
+    errorMessage,
+    getPokemons,
+    searchPokemon,
+    filteredPokemons,
+    setSelectedPokemon,
+  }
 })
