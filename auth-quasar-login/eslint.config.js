@@ -8,6 +8,8 @@ import {
   defineConfigWithVueTs,
   vueTsConfigs,
 } from '@vue/eslint-config-typescript'
+import typescriptEslint from '@typescript-eslint/eslint-plugin'
+import typescriptParser from '@typescript-eslint/parser'
 
 configureVueProject({
   // Permitimos JS temporalmente para una migración incremental a TS.
@@ -49,7 +51,11 @@ export default defineConfigWithVueTs(
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
-
+      parserOptions: {
+        parser: typescriptParser,
+        extraFileExtensions: ['.vue'],
+        project: './tsconfig.json',
+      },
       globals: {
         ...globals.browser,
         ...globals.node, // SSR, Electron, config files
@@ -60,6 +66,10 @@ export default defineConfigWithVueTs(
         chrome: 'readonly', // BEX related
         browser: 'readonly', // BEX related
       },
+    },
+
+    plugins: {
+      '@typescript-eslint': typescriptEslint,
     },
 
     // add your custom rules here

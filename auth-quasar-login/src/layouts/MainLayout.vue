@@ -41,6 +41,9 @@
         <RouterLink :to="{ name: 'pokemon' }" class="text-white q-mr-xl no-underline"
           ><q-icon name="las la-dragon" class="q-mr-xs" size="sm" />Pokemons</RouterLink
         >
+        <RouterLink :to="{ name: 'rnas' }" class="text-white q-mr-xl no-underline"
+          ><q-icon name="las la-dragon" class="q-mr-xs" size="sm" />Rnas</RouterLink
+        >
         <q-space />
         <RouterLink
           v-if="useAuth.isAuthenticated"

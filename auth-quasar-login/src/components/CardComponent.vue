@@ -18,8 +18,8 @@
   </q-card>
 </template>
 
-<script setup>
-import { defineProps } from 'vue'
+<script lang="ts" setup>
+import { Pokemon } from '../services/servicePokemon'
 import { QCard, QImg, QCardSection, QChip } from 'quasar'
 
 const colorType = {
@@ -43,18 +43,17 @@ const colorType = {
   fairy: 'pink',
 }
 
-const props = defineProps({
-  pokemon: {
-    type: Object,
-    required: true,
-  },
-})
-
-const capFirstLetter = (string) => {
-  return string.charAt(0).toUpperCase() + string.slice(1)
+interface Props {
+  pokemon: Pokemon
 }
 
-const colorChip = (type) => {
+const props = defineProps<Props>()
+
+const capFirstLetter = (name: string) => {
+  return name.charAt(0).toUpperCase() + name.slice(1)
+}
+
+const colorChip = (type: string) => {
   return colorType[type]
 }
 </script>

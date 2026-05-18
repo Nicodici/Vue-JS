@@ -8,7 +8,7 @@
       class="inputSearch"
     />
   </div>
-  <div class="containerPokemons">
+  <div class="containerPokemons" @click="pokemonToDetail">
     <CardComponent
       v-for="(pokemon, index) in pokemonStore.filteredPokemons"
       :key="index"
@@ -17,16 +17,25 @@
   </div>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import { onMounted } from 'vue'
 import CardComponent from 'src/components/CardComponent.vue'
 import { usePokemonStore } from 'src/stores/pokemon'
-
 const pokemonStore = usePokemonStore()
-
 onMounted(async () => {
   await pokemonStore.getPokemons()
 })
+
+const pokemonToDetail = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  const cardElement = target.closest('.card') as HTMLElement
+  if (cardElement) {
+    const pokemonName = cardElement.getAttribute('data-name')
+    if (pokemonName) {
+      pokemonStore.setSelectedPokemon(pokemonName)
+    }
+  }
+}
 </script>
 
 <style scoped>

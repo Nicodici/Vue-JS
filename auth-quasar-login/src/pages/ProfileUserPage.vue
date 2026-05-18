@@ -73,7 +73,6 @@
       button-label="Eliminar cuenta"
       button-type="anchor"
       description="Se borrará permanentemente tu cuenta."
-
     />
     <StaticElement name="divider_4" tag="hr" />
   </Vueform>
@@ -133,6 +132,7 @@ const loadProfile = async () => {
       birthday: userDataProfile.data()?.birthday,
       telefono: userDataProfile.data()?.telefono,
     }
+    console.log(profile)
   } catch (error) {
     console.error('Error al cargar perfil:', error)
   } finally {
@@ -141,7 +141,6 @@ const loadProfile = async () => {
 }
 
 onMounted(loadProfile)
-
 </script>
 
 <style scoped>

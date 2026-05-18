@@ -63,7 +63,7 @@
 
   <!-- <div>
     Verificación de las variables reactivas
-    <p>Usuario: {{ nameUser }}</p> 
+    <p>Usuario: {{ nameUser }}</p>
     <p>Contraseña: {{ passwUser }}</p>
   </div> -->
 </template>
@@ -88,7 +88,7 @@ const authUser = async () => {
   const auth = getAuth()
   try {
     const cred = await signInWithEmailAndPassword(auth, nameUser.value, passwUser.value)
-    console.log('Usuario autenticado correctamente')
+    console.log('Usuario autenticado correctamente. /n Credenciales: ', cred);
     useAuth.user = nameUser.value
     useAuth.uidUser = cred.user.uid
     useAuth.isAuthenticated = true
