@@ -1,17 +1,14 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios'
 
 // Definimos una interfaz para los datos básicos de un Pokémon
-export interface Pokemon {
-  name: string
-  url: string
-}
 
-export interface PokemonDetail {
+export interface Pokemon {
   id: number
+  url?: string
   name: string
   image: string
   types: string[]
-  stats?: string
+  stats?: string[]
 }
 
 // Definimos una interfaz para la respuesta de la API al listar Pokémon
@@ -33,13 +30,15 @@ const api: AxiosInstance = axios.create({
 
 // Función para obtener la lista de Pokémon con tipado
 export const fetchPokemonList = async (limit = 20, offset = 0): Promise<PokemonListResponse> => {
-  const response: AxiosResponse<PokemonListResponse> = await api.get(`/pokemon?limit=${limit}&offset=${offset}`)
+  const response: AxiosResponse<PokemonListResponse> = await api.get(
+    `/pokemon?limit=${limit}&offset=${offset}`,
+  )
   return response.data
 }
 
 // Función para obtener los detalles de un Pokémon por su nombre o ID
-export const fetchPokemonDetails = async (nameOrId: string | number): Promise<any> => {
-  const response: AxiosResponse<any> = await api.get(`/pokemon/${nameOrId}`)
+export const fetchPokemonDetails = async (nameOrId: string | number): Promise<Pokemon> => {
+  const response: AxiosResponse<Pokemon> = await api.get(`/pokemon/${nameOrId}`)
   return response.data
 }
 

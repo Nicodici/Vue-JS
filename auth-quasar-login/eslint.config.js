@@ -3,6 +3,8 @@ import globals from 'globals'
 import pluginVue from 'eslint-plugin-vue'
 import pluginQuasar from '@quasar/app-vite/eslint'
 import prettierSkipFormatting from '@vue/eslint-config-prettier/skip-formatting'
+import typescriptEslint from '@typescript-eslint/eslint-plugin'
+import typescriptParser from '@typescript-eslint/parser'
 
 export default [
   {
@@ -38,7 +40,11 @@ export default [
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
-
+      parserOptions: {
+        parser: typescriptParser,
+        extraFileExtensions: ['.vue'],
+        project: './tsconfig.json',
+      },
       globals: {
         ...globals.browser,
         ...globals.node, // SSR, Electron, config files
@@ -49,6 +55,10 @@ export default [
         chrome: 'readonly', // BEX related
         browser: 'readonly', // BEX related
       },
+    },
+
+    plugins: {
+      '@typescript-eslint': typescriptEslint,
     },
 
     // add your custom rules here

@@ -11,10 +11,9 @@ import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
  * with the Store instance.
  */
 
-export default defineStore((/* { ssrContext } */) => {
+export default defineStore((/* { ssrContext }: { ssrContext?: any } */) => {
   const pinia = createPinia()
   pinia.use(piniaPluginPersistedstate)
-
 
   return pinia
 })

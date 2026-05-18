@@ -43,6 +43,14 @@ const routes = [
         path: '/pokemon',
         name: 'pokemon',
         component: () => import('src/pages/PokemonPage.vue'),
+        children: [
+          {
+            path: '/:id',
+            name: 'pokemonDetail',
+            component: () => import('src/pages/PokemonDetailPage.vue'),
+            meta: { requireAuth: true },
+          }
+        ],
         meta: { requireAuth: true },
       },
       {
